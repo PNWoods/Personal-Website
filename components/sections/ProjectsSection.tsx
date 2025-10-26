@@ -1,4 +1,4 @@
-import { GraduationCap, FileText, Server, Smartphone } from 'lucide-react'
+import { FileText, GraduationCap, Server, Smartphone } from 'lucide-react'
 import SkillTag from '../SkillTag'
 import { getSkillColor } from '../../data/skills'
 

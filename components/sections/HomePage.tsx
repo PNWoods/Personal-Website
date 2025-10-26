@@ -6,8 +6,8 @@ import { useContactModal } from '../ContactModalProvider'
 export default function HomePage() {
   const { showContactModal } = useContactModal()
   return (
-    <section className="relative h-screen flex items-center overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+    <section className="relative min-h-screen flex items-center py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full overflow-x-hidden">
         <div className="flex flex-col lg:flex-row items-center gap-12">
           {/* Photo - Left Side */}
           <div className="flex-shrink-0">
