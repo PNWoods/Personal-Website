@@ -51,7 +51,7 @@ A modern, responsive personal website showcasing my software development skills,
 │   └── skills.ts        # Skill color mappings and categories
 ├── public/              # Static assets
 │   ├── resume.pdf       # Resume PDF
-│   └── patrick-woods-photo.jpeg # Profile photo Need to Update
+│   └── patrick-woods-photo.jpeg # Profile photo NEED TO UPDATE
 ├── next.config.js       # Next.js configuration
 ├── tailwind.config.js   # Tailwind CSS configuration
 └── tsconfig.json        # TypeScript configuration
