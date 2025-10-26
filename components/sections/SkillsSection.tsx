@@ -14,31 +14,31 @@ export default function SkillsSection() {
   }
 
   return (
-    <section className="h-screen py-8 overflow-hidden">
+    <section className="py-6 sm:py-8 pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-start mb-12">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-8 sm:mb-12 gap-4 sm:gap-0">
           <div>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-4">
               Skills & Resume
             </h2>
-            <p className="text-xl text-gray-300 max-w-3xl">
+            <p className="text-base sm:text-xl text-gray-300 max-w-3xl">
               A comprehensive overview of my technical skills and professional experience.
             </p>
           </div>
           <button 
             onClick={handleResumeDownload}
-            className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2 flex-shrink-0"
+            className="bg-blue-600 text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2 flex-shrink-0 self-start sm:self-auto text-sm sm:text-base"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             Download Resume
           </button>
         </div>
         
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
           <div className="text-left">
-            <h4 className="text-2xl font-semibold text-white mb-6">Programming Languages</h4>
+            <h4 className="text-xl sm:text-2xl font-semibold text-white mb-4 sm:mb-6">Programming Languages</h4>
             <div className="flex flex-wrap gap-2">
               <SkillTag skill="Java" color={getSkillColor('Java')} />
               <SkillTag skill="C" color={getSkillColor('C')} />
@@ -53,7 +53,7 @@ export default function SkillsSection() {
           </div>
           
           <div className="text-left">
-            <h4 className="text-2xl font-semibold text-white mb-6">Frameworks & Libraries</h4>
+            <h4 className="text-xl sm:text-2xl font-semibold text-white mb-4 sm:mb-6">Frameworks & Libraries</h4>
             <div className="flex flex-wrap gap-2">
               <SkillTag skill="LangChain" color={getSkillColor('LangChain')} />
               <SkillTag skill="Hugging Face" color={getSkillColor('Hugging Face')} />
@@ -67,7 +67,7 @@ export default function SkillsSection() {
           </div>
           
           <div className="text-left">
-            <h4 className="text-2xl font-semibold text-white mb-6">Development Tools</h4>
+            <h4 className="text-xl sm:text-2xl font-semibold text-white mb-4 sm:mb-6">Development Tools</h4>
             <div className="flex flex-wrap gap-2">
               <SkillTag skill="Visual Studio" color={getSkillColor('Visual Studio')} />
               <SkillTag skill="AWS" color={getSkillColor('AWS')} />
@@ -82,7 +82,7 @@ export default function SkillsSection() {
           </div>
           
           <div className="text-left">
-            <h4 className="text-2xl font-semibold text-white mb-6">Operating Systems & Virtualization</h4>
+            <h4 className="text-xl sm:text-2xl font-semibold text-white mb-4 sm:mb-6">Operating Systems & Virtualization</h4>
             <div className="flex flex-wrap gap-2">
               <SkillTag skill="Windows" color={getSkillColor('Windows')} />
               <SkillTag skill="Linux/Unix" color={getSkillColor('Linux/Unix')} />
@@ -93,7 +93,7 @@ export default function SkillsSection() {
           </div>
           
           <div className="text-left">
-            <h4 className="text-2xl font-semibold text-white mb-6">AI, ML, and HPC</h4>
+            <h4 className="text-xl sm:text-2xl font-semibold text-white mb-4 sm:mb-6">AI, ML, and HPC</h4>
             <div className="flex flex-wrap gap-2">
               <SkillTag skill="RAG" color={getSkillColor('RAG')} />
               <SkillTag skill="Multi-Agent RAG" color={getSkillColor('Multi-Agent RAG')} />
@@ -114,7 +114,7 @@ export default function SkillsSection() {
           </div>
           
           <div className="text-left">
-            <h4 className="text-2xl font-semibold text-white mb-6">Backend & Cloud</h4>
+            <h4 className="text-xl sm:text-2xl font-semibold text-white mb-4 sm:mb-6">Backend & Cloud</h4>
             <div className="flex flex-wrap gap-2">
               <SkillTag skill="PostgreSQL" color={getSkillColor('PostgreSQL')} />
               <SkillTag skill="pgvector" color={getSkillColor('pgvector')} />
@@ -127,7 +127,7 @@ export default function SkillsSection() {
           </div>
           
           <div className="text-left">
-            <h4 className="text-2xl font-semibold text-white mb-6">Networking & Infrastructure</h4>
+            <h4 className="text-xl sm:text-2xl font-semibold text-white mb-4 sm:mb-6">Networking & Infrastructure</h4>
             <div className="flex flex-wrap gap-2">
               <SkillTag skill="Network Administration" color={getSkillColor('Network Administration')} />
               <SkillTag skill="System Integration" color={getSkillColor('System Integration')} />
