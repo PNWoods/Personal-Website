@@ -18,7 +18,13 @@ export default function NewWorkoutPage() {
   const supabase = createClient()
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [name, setName] = useState('')
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(() => {
+    const d = new Date()
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  })
   const [rows, setRows] = useState<PlanRow[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -60,6 +66,7 @@ export default function NewWorkoutPage() {
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) {
+      setSaving(false)
       router.push('/workouts/login')
       return
     }
@@ -80,12 +87,13 @@ export default function NewWorkoutPage() {
         workout_id: workout.id,
         exercise_id: r.exerciseId,
         position: i,
-        target_sets: r.targetSets,
-        target_reps: r.targetReps,
+        target_sets: Math.max(1, r.targetSets || 1),
+        target_reps: Math.max(1, r.targetReps || 1),
         target_weight: r.targetWeight === '' ? null : r.targetWeight,
       }))
     )
     if (weErr) {
+      await supabase.from('workouts').delete().eq('id', workout.id)
       setError(weErr.message)
       setSaving(false)
       return
