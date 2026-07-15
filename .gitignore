@@ -20,3 +20,6 @@ build/
 
 # TypeScript build cache
 *.tsbuildinfo
+
+# sdd scratch
+.superpowers/
