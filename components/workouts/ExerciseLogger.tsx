@@ -26,12 +26,15 @@ export default function ExerciseLogger({ workoutExercise, initialSets }: Props) 
     setFailed(false)
     const { data, error } = await createClient()
       .from('sets')
-      .insert({
-        workout_exercise_id: we.id,
-        set_number: sets.length + 1,
-        reps,
-        weight,
-      })
+      .upsert(
+        {
+          workout_exercise_id: we.id,
+          set_number: sets.length + 1,
+          reps,
+          weight,
+        },
+        { onConflict: 'workout_exercise_id,set_number' }
+      )
       .select()
       .single()
     setSaving(false)
@@ -39,7 +42,7 @@ export default function ExerciseLogger({ workoutExercise, initialSets }: Props) 
       setFailed(true)
       return
     }
-    setSets([...sets, data as WorkoutSet])
+    setSets([...sets, { ...data, weight: Number(data.weight) } as WorkoutSet])
   }
 
   return (
