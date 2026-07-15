@@ -1,6 +1,6 @@
 # Patrick Woods - My Personal Website
 
-A modern, responsive personal website showcasing my software development skills, projects, and professional experience. Built with Next.js, TypeScript, and Tailwind CSS.t
+A modern, responsive personal website showcasing my software development skills, projects, and professional experience. Built with Next.js, TypeScript, and Tailwind CSS.
 
 ## Features
 
@@ -9,7 +9,6 @@ A modern, responsive personal website showcasing my software development skills,
 - **Interactive Contact Modal**: Popup contact information accessible from navigation and home page
 - **Project Showcase**: Detailed project cards with skill tags and descriptions
 - **Skills Organization**: Categorized technical skills with color-coded tags
-- **Resume Download**: Direct download functionality for PDF resume
 - **Professional UI**: Clean, modern design with consistent branding
 - **Scrollable Projects**: Projects page allows scrolling to view all content
 - **Fixed Layout**: Other pages maintain fixed height for consistent user experience
@@ -50,8 +49,7 @@ A modern, responsive personal website showcasing my software development skills,
 ├── data/
 │   └── skills.ts        # Skill color mappings and categories
 ├── public/              # Static assets
-│   ├── resume.pdf       # Resume PDF
-│   └── patrick-woods-photo.jpeg # Profile photo NEED TO UPDATE
+│   └── patrick-woods-photo.jpeg # Profile photo
 ├── next.config.js       # Next.js configuration
 ├── tailwind.config.js   # Tailwind CSS configuration
 └── tsconfig.json        # TypeScript configuration
@@ -66,12 +64,13 @@ A modern, responsive personal website showcasing my software development skills,
 
 ### About Page (`/about`)
 - Personal background and experience
-- Focus on RFP-Pilot, Edge LLMs research, and BCDA LLC work
+- Focus on Fayetteville PWC, RFP-Pilot, Edge LLMs research, and earlier Clemson/BCDA work
 - Professional narrative of career journey
 
 ### Projects Page (`/projects`)
-- **RFP-Pilot**: Multi-agent RAG platform
-- **Clemson AI Research - Edge LLMs**: Edge device LLM optimization
+- **Fayetteville PWC**: AI and Data Engineering for utility operations and internal-document RAG agents
+- **RFP-Pilot**: Multi-agent RAG platform (co-founder, pilot stage)
+- **Clemson AI Research - Edge LLMs**: Edge device LLM optimization (CVPR 2026 LoViF Workshop paper)
 - **Clemson AI Research - RAG Systems**: HPC-based RAG development
 - **BCDA LLC Network Infrastructure**: Network expansion and staff training
 - Each project includes detailed descriptions and skill tags
@@ -79,7 +78,6 @@ A modern, responsive personal website showcasing my software development skills,
 ### Skills Page (`/skills`)
 - Comprehensive technical skills organized by category
 - Color-coded skill tags for visual consistency
-- Direct resume download functionality
 - Categories: Programming Languages, Frameworks & Libraries, Development Tools, Operating Systems, AI/ML/HPC, Backend & Cloud, Networking & Infrastructure
 
 ## Key Features Implemented

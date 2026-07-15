@@ -4,7 +4,7 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           <p className="text-gray-400">
-            © 2025 Patrick Woods. All rights reserved.
+            © 2026 Patrick Woods. All rights reserved.
           </p>
         </div>
       </div>

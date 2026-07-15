@@ -1,5 +1,7 @@
+import type { SkillColor } from '../components/SkillTag'
+
 // Skill color mapping organized by topic for better visual consistency
-export const skillColors: Record<string, string> = {
+export const skillColors: Record<string, SkillColor> = {
   // Programming Languages - Blue theme
   'Java': 'blue',
   'C': 'blue',
@@ -86,6 +88,6 @@ export const skillColors: Record<string, string> = {
   'Technical Presentations': 'yellow'
 }
 
-export const getSkillColor = (skill: string): string => {
+export const getSkillColor = (skill: string): SkillColor => {
   return skillColors[skill] || 'blue' // Default to blue if not found
 }

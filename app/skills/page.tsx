@@ -1,5 +1,5 @@
-import Navigation from '../../components/Navigation'
-import SkillsSection from '../../components/sections/SkillsSection'
+import Navigation from '@/components/Navigation'
+import SkillsSection from '@/components/sections/SkillsSection'
 
 export default function SkillsPage() {
   return (

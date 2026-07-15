@@ -6,8 +6,8 @@ import { ContactModalProvider } from '../components/ContactModalProvider'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Patrick Woods - Software Developer',
-  description: 'Personal website of Patrick Woods, software developer specializing in AI, machine learning, and cloud computing',
+  title: 'Patrick Woods - AI & Data Engineer',
+  description: 'Personal website of Patrick Woods, AI and Data Engineer building data systems, RAG agents, and on-device LLM research.',
 }
 
 export default function RootLayout({
