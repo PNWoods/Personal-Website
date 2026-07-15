@@ -17,3 +17,6 @@ build/
 
 # misc
 .DS_Store
+
+# TypeScript build cache
+*.tsbuildinfo
