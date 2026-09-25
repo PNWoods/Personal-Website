@@ -71,7 +71,9 @@ export async function POST(request: Request) {
     upstream = await ollamaFetch('/api/chat', {
       method: 'POST',
       signal: upstreamAbort.signal,
-      json: { model, messages, stream: true, keep_alive: '30m' },
+      // think: false keeps thinking-capable models (qwen3.6) from spending the
+      // whole budget on hidden reasoning that this stream does not surface.
+      json: { model, messages, stream: true, keep_alive: '30m', think: false },
     })
   } catch (err) {
     if (err instanceof OllamaError) {

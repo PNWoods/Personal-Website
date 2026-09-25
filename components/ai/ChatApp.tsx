@@ -13,6 +13,13 @@ import { useChat } from './useChat'
 import type { OllamaStatus } from './ModelSelect'
 
 const MODEL_STORAGE_KEY = 'ai-chat-model'
+// First match wins when nothing is stored. Benchmarked on the RTX 4080 Laptop
+// host (12 GB VRAM + 64 GB RAM): qwen3.6 MoE ~72 tok/s, the others ~44 tok/s.
+const PREFERRED_MODELS = [
+  'qwen3.6:35b-a3b-coding',
+  'qwen3-coder:30b',
+  'qwen2.5-coder:14b',
+]
 
 export default function ChatApp({
   userId,
@@ -81,7 +88,10 @@ export default function ChatApp({
           stored = null
         }
         if (stored && list.some((m) => m.name === stored)) return stored
-        return list[0]?.name ?? null
+        const preferred = PREFERRED_MODELS.find((name) =>
+          list.some((m) => m.name === name)
+        )
+        return preferred ?? list[0]?.name ?? null
       })
     } catch {
       setStatus('offline')
