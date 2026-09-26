@@ -100,9 +100,12 @@ export async function loadHistory(
 export function buildPrompt(
   conversation: Conversation,
   history: Message[],
-  opts: { knowledge?: string } = {}
+  opts: { knowledge?: string; memories?: string } = {}
 ): PromptMessage[] {
   let system = systemPrompt()
+  if (opts.memories) {
+    system += `\n\n${opts.memories}`
+  }
   if (conversation.summary) {
     system += `\n\n## Earlier in this conversation (compacted)\n${conversation.summary}`
   }

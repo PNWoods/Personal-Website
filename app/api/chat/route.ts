@@ -19,7 +19,15 @@ import {
   type Retrieval,
 } from '@/lib/ai/knowledge/retrieve'
 import { searchWeb, webSearchConfigured } from '@/lib/ai/knowledge/web'
-import type { ChatRequestBody, ChatStreamEvent, Message } from '@/lib/ai/types'
+import {
+  addMemories,
+  extractMemories,
+  formatMemoryBlock,
+  loadMemories,
+  parseRememberCommand,
+} from '@/lib/ai/memory'
+import type { ChatRequestBody, ChatStreamEvent, Memory, Message } from '@/lib/ai/types'
+import { waitUntil } from '@vercel/functions'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -88,6 +96,38 @@ export async function POST(request: Request) {
   }
   if (history.length === 0) {
     return NextResponse.json({ error: 'Nothing to send' }, { status: 400 })
+  }
+
+  // Per-user memory: what we already know, whether to keep learning, and an
+  // explicit "remember that ..." in this turn.
+  let memories: Memory[] = []
+  let memoryAuto = true
+  let justRemembered: string | null = null
+  try {
+    const [mem, settings] = await Promise.all([
+      loadMemories(supabase, user.id),
+      supabase.from('user_settings').select('memory_auto').eq('user_id', user.id).maybeSingle(),
+    ])
+    memories = mem
+    memoryAuto = (settings.data as { memory_auto?: boolean } | null)?.memory_auto !== false
+    const latest = history[history.length - 1]
+    const fact = latest?.role === 'user' ? parseRememberCommand(latest.content) : null
+    if (fact) {
+      const added = await addMemories(supabase, user.id, [fact], {
+        kind: 'manual',
+        conversationId,
+        existing: memories,
+      })
+      memories = [...memories, ...added]
+      justRemembered = fact
+    }
+  } catch (err) {
+    // Memory is a nicety; never block the reply on it (e.g. migration not run yet).
+    console.error('[api/chat] memory load failed', err)
+  }
+  let memoryBlock = formatMemoryBlock(memories)
+  if (justRemembered) {
+    memoryBlock += `\n\nThe user just asked you to remember: "${justRemembered}". It has been saved. Acknowledge that in one short sentence, then continue.`
   }
 
   const upstreamAbort = new AbortController()
@@ -187,7 +227,10 @@ export async function POST(request: Request) {
         }
 
         // 2. Fit the prompt into the window, compacting older turns if needed.
-        let prompt = buildPrompt(conversation!, history, { knowledge: knowledge?.block })
+        let prompt = buildPrompt(conversation!, history, {
+          knowledge: knowledge?.block,
+          memories: memoryBlock,
+        })
         if (needsCompaction(prompt, history.length)) {
           send({ type: 'status', message: 'Compacting earlier messages…' })
           try {
@@ -200,7 +243,10 @@ export async function POST(request: Request) {
             )
             conversation = result.conversation
             history = result.history
-            prompt = buildPrompt(conversation, history, { knowledge: knowledge?.block })
+            prompt = buildPrompt(conversation, history, {
+              knowledge: knowledge?.block,
+              memories: memoryBlock,
+            })
             console.log(
               `[api/chat] compacted conversation=${conversationId} summarized=${result.summarizedCount} total=${conversation.summary_message_count}`
             )
@@ -270,6 +316,35 @@ export async function POST(request: Request) {
             console.log(
               `[api/chat] done model=${model} chunks=${chunks} chars=${full.length} prompt=${chunk.prompt_eval_count ?? '-'} eval=${chunk.eval_count ?? '-'} reason=${chunk.done_reason ?? '-'}`
             )
+            // Learn durable facts from this exchange after the response is
+            // out the door. waitUntil keeps the function alive for it.
+            const latest = history[history.length - 1]
+            if (
+              memoryAuto &&
+              !justRemembered &&
+              latest?.role === 'user' &&
+              latest.content.trim().split(/\s+/).length >= 4 &&
+              full.length > 0
+            ) {
+              waitUntil(
+                extractMemories(supabase, {
+                  userId: user.id,
+                  conversationId,
+                  model,
+                  userText: latest.content,
+                  assistantText: full,
+                  existing: memories,
+                })
+                  .then((added) => {
+                    if (added.length) {
+                      console.log(
+                        `[api/chat] remembered ${added.length}: ${added.map((m) => m.content).join(' | ')}`
+                      )
+                    }
+                  })
+                  .catch((err) => console.error('[api/chat] memory extraction failed', err))
+              )
+            }
             send({
               type: 'done',
               messageId,

@@ -106,7 +106,8 @@ curl -s -H "CF-Access-Client-Id: $ID" -H "CF-Access-Client-Secret: $SECRET" \
    then `0006_knowledge_storage.sql` (private `knowledge` bucket + object policies
    for uploads; 50 MB per file, files live at `<user_id>/<document_id>/<name>`),
    then `0007_conversation_web_search.sql` (per-conversation web search flag),
-   then `0008_user_settings.sql` (per-user settings such as the message color).
+   then `0008_user_settings.sql` (per-user settings such as the message color),
+   then `0009_memories.sql` (per-user memory + the automatic-memory toggle).
 3. Confirm the manually created user still exists under **Authentication →
    Users** and that email signups remain disabled.
 4. The daily cron in `vercel.json` hits `/api/cron/keepalive`, which runs one
