@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Check, Copy } from 'lucide-react'
+import type { Source } from '@/lib/ai/types'
+import remarkCitations from './remarkCitations'
 
 function CodeBlock({
   language,
@@ -44,11 +46,26 @@ function CodeBlock({
   )
 }
 
-export default function Markdown({ content }: { content: string }) {
+export default function Markdown({
+  content,
+  sources,
+  onCite,
+}: {
+  content: string
+  /** When present, [n] markers in the text become clickable citations. */
+  sources?: Source[]
+  onCite?: (n: number) => void
+}) {
+  const count = sources?.length ?? 0
+  const plugins = useMemo(
+    () => (count > 0 ? [remarkGfm, remarkCitations(count)] : [remarkGfm]),
+    [count]
+  )
+
   return (
     <div className="prose prose-invert prose-sm max-w-none break-words md:prose-base prose-pre:bg-transparent prose-pre:p-0">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={plugins}
         components={{
           // Fenced blocks arrive as <pre><code className="language-x">.
           pre({ children }) {
@@ -70,9 +87,30 @@ export default function Markdown({ content }: { content: string }) {
             }
             return <CodeBlock language={match?.[1] ?? null} code={text} />
           },
-          a({ node: _node, children, ...props }) {
+          a({ node: _node, children, href, ...props }) {
+            if (href?.startsWith('cite:')) {
+              const n = Number(href.slice(5))
+              const src = sources?.[n - 1]
+              const title = src
+                ? src.section
+                  ? `${src.title} › ${src.section}`
+                  : src.title
+                : `Source ${n}`
+              return (
+                <sup>
+                  <button
+                    type="button"
+                    onClick={() => onCite?.(n)}
+                    title={title}
+                    className="not-prose mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded bg-blue-500/25 px-1 text-[10px] font-medium text-blue-200 hover:bg-blue-500/50"
+                  >
+                    {n}
+                  </button>
+                </sup>
+              )
+            }
             return (
-              <a {...props} target="_blank" rel="noreferrer noopener">
+              <a {...props} href={href} target="_blank" rel="noreferrer noopener">
                 {children}
               </a>
             )

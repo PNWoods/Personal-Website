@@ -26,7 +26,9 @@ Code map:
 
 ## 1. Home computer: Ollama
 
-- Install Ollama and pull at least one model (`ollama pull llama3.1`).
+- Install Ollama and pull at least one chat model (`ollama pull qwen3.6:35b-a3b-coding`)
+  plus the embedding model used by the knowledge bases
+  (`ollama pull qwen3-embedding:0.6b`, 1024 dims; the schema is fixed to that size).
 - Leave the default bind (`127.0.0.1:11434`). `OLLAMA_HOST=0.0.0.0` is **not**
   needed because cloudflared runs on the same machine, and `OLLAMA_ORIGINS`
   is irrelevant (the Vercel backend calls Ollama server-to-server).
@@ -99,7 +101,8 @@ curl -s -H "CF-Access-Client-Id: $ID" -H "CF-Access-Client-Secret: $SECRET" \
 1. Dashboard → project → **Restore project** (free projects pause after ~7 days
    without API traffic). Wait until it reports healthy.
 2. SQL editor → paste and run `supabase/migrations/0003_chat_schema.sql`,
-   then `supabase/migrations/0004_conversation_summary.sql` (compaction columns).
+   then `0004_conversation_summary.sql` (compaction columns), then
+   `0005_knowledge_schema.sql` (pgvector, knowledge-base tables, `match_chunks`).
 3. Confirm the manually created user still exists under **Authentication →
    Users** and that email signups remain disabled.
 4. The daily cron in `vercel.json` hits `/api/cron/keepalive`, which runs one
@@ -125,6 +128,8 @@ curl -s -H "CF-Access-Client-Id: $ID" -H "CF-Access-Client-Secret: $SECRET" \
    | `CF_ACCESS_CLIENT_SECRET` | from step 3 |
    | `AI_HOST` | `ai.pnwoods.com` (optional, this is the default) |
    | `OLLAMA_NUM_CTX` | context window requested per request (optional, default `32768`) |
+   | `OLLAMA_EMBED_MODEL` | embedding model for knowledge bases (optional, default `qwen3-embedding:0.6b`, must be 1024-dim) |
+   | `RAG_TOP_K` / `RAG_TOKEN_BUDGET` | excerpts per turn and their token budget (optional, defaults `8` / `2500`) |
    | `CRON_SECRET` | `openssl rand -hex 32` |
    | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | already set |
 

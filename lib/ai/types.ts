@@ -11,6 +11,8 @@ export interface Conversation {
   summary: string | null
   summary_upto: string | null
   summary_message_count: number
+  /** Knowledge collections consulted for this conversation (migration 0005). */
+  collection_ids: string[]
 }
 
 export interface Message {
@@ -19,6 +21,8 @@ export interface Message {
   role: Role
   content: string
   created_at: string
+  /** Sources cited by an assistant turn; [] when retrieval ran and found nothing. */
+  sources?: Source[] | null
 }
 
 /** Client-side message shape (adds transient streaming state). */
@@ -30,6 +34,7 @@ export interface ChatMessage {
   /** Progress text shown while streaming and no content has arrived yet. */
   status?: string
   error?: string
+  sources?: Source[]
 }
 
 export interface ChatRequestBody {
@@ -51,8 +56,75 @@ export interface ContextUsage {
   estimated?: boolean
 }
 
+// ---------------------------------------------------------------------------
+// Knowledge bases (migration 0005)
+// ---------------------------------------------------------------------------
+
+export type SourceType = 'file' | 'url' | 'note'
+export type DocumentStatus =
+  | 'uploading'
+  | 'pending'
+  | 'extracting'
+  | 'embedding'
+  | 'ready'
+  | 'error'
+
+export interface Collection {
+  id: string
+  user_id: string
+  name: string
+  description: string | null
+  is_shared: boolean
+  created_at: string
+  updated_at: string
+}
+
+/** Named KnowledgeDocument to avoid clashing with the DOM `Document` type. */
+export interface KnowledgeDocument {
+  id: string
+  collection_id: string
+  user_id: string
+  title: string
+  source_type: SourceType
+  source_url: string | null
+  storage_path: string | null
+  mime_type: string | null
+  size_bytes: number | null
+  content: string | null
+  status: DocumentStatus
+  error: string | null
+  chunk_count: number
+  embedded_count: number
+  embedding_model: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** One numbered excerpt shown to the model and cited as [n] in its reply. */
+export interface Source {
+  n: number
+  chunkId: string
+  documentId: string
+  title: string
+  section: string | null
+  snippet: string
+  sourceType: SourceType
+  url: string | null
+}
+
+export interface IngestResponse {
+  documentId: string
+  status: DocumentStatus
+  chunkCount: number
+  embeddedCount: number
+  error?: string
+  /** True when the document reached a terminal state (ready or error). */
+  done: boolean
+}
+
 export type ChatStreamEvent =
   | { type: 'status'; message: string }
+  | { type: 'sources'; sources: Source[] }
   | { type: 'delta'; content: string }
   | {
       type: 'compacted'

@@ -11,6 +11,7 @@ import {
   needsCompaction,
   trimToFit,
 } from '@/lib/ai/context'
+import { retrieveSources, type Retrieval } from '@/lib/ai/knowledge/retrieve'
 import type { ChatRequestBody, ChatStreamEvent, Message } from '@/lib/ai/types'
 
 export const runtime = 'nodejs'
@@ -87,6 +88,8 @@ export async function POST(request: Request) {
   let full = ''
   let persisted = false
   let closed = false
+  // Knowledge-base excerpts for this turn (null when no collection is selected).
+  let knowledge: Retrieval | null = null
 
   // Save the assistant turn once, whether the stream completed or was cut off.
   async function persist(): Promise<string | null> {
@@ -95,7 +98,12 @@ export async function POST(request: Request) {
     if (!full.trim()) return null
     const { data, error } = await supabase
       .from('messages')
-      .insert({ conversation_id: conversationId, role: 'assistant', content: full })
+      .insert({
+        conversation_id: conversationId,
+        role: 'assistant',
+        content: full,
+        sources: knowledge ? knowledge.sources : null,
+      })
       .select('id')
       .single()
     if (error) {
@@ -122,8 +130,31 @@ export async function POST(request: Request) {
       let chunks = 0
       let finished = false
       try {
-        // 1. Fit the prompt into the window, compacting older turns if needed.
-        let prompt = buildPrompt(conversation!, history)
+        // 1. Retrieve knowledge-base excerpts for the latest user turn, if the
+        //    conversation has collections selected.
+        const lastUser = history[history.length - 1]
+        if (conversation!.collection_ids?.length && lastUser?.role === 'user') {
+          send({ type: 'status', message: 'Searching knowledge…' })
+          try {
+            knowledge = await retrieveSources(supabase, {
+              query: lastUser.content,
+              collectionIds: conversation!.collection_ids,
+              signal: upstreamAbort.signal,
+            })
+            console.log(
+              `[api/chat] retrieved conversation=${conversationId} collections=${conversation!.collection_ids.length} sources=${knowledge.sources.length}`
+            )
+            send({ type: 'sources', sources: knowledge.sources })
+          } catch (err) {
+            if ((err as Error)?.name === 'AbortError') throw err
+            console.error('[api/chat] retrieval failed, answering without sources', err)
+            send({ type: 'status', message: 'Knowledge search failed; answering without sources…' })
+            knowledge = null
+          }
+        }
+
+        // 2. Fit the prompt into the window, compacting older turns if needed.
+        let prompt = buildPrompt(conversation!, history, { knowledge: knowledge?.block })
         if (needsCompaction(prompt, history.length)) {
           send({ type: 'status', message: 'Compacting earlier messages…' })
           try {
@@ -136,7 +167,7 @@ export async function POST(request: Request) {
             )
             conversation = result.conversation
             history = result.history
-            prompt = buildPrompt(conversation, history)
+            prompt = buildPrompt(conversation, history, { knowledge: knowledge?.block })
             console.log(
               `[api/chat] compacted conversation=${conversationId} summarized=${result.summarizedCount} total=${conversation.summary_message_count}`
             )
@@ -154,7 +185,7 @@ export async function POST(request: Request) {
         }
         prompt = trimToFit(prompt)
 
-        // 2. Stream the reply.
+        // 3. Stream the reply.
         send({ type: 'status', message: 'Thinking…' })
         let upstream: Response
         try {

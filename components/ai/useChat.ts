@@ -19,6 +19,8 @@ const DEFAULT_NUM_CTX = 32768
 interface UseChatOptions {
   userId: string
   model: string | null
+  /** Knowledge collections a brand-new conversation should start with. */
+  collectionIds: string[]
   onConversationCreated: (conversation: Conversation) => void
   onConversationUpdated: (conversation: Conversation) => void
 }
@@ -36,6 +38,7 @@ function estimateUsage(messages: { content: string }[], limit: number): ContextU
 export function useChat({
   userId,
   model,
+  collectionIds,
   onConversationCreated,
   onConversationUpdated,
 }: UseChatOptions) {
@@ -83,6 +86,7 @@ export function useChat({
         id: m.id,
         role: m.role,
         content: m.content,
+        sources: m.sources ?? undefined,
       }))
       setMessages(loaded)
       setUsage(loaded.length ? estimateUsage(loaded, limitRef.current) : null)
@@ -103,7 +107,12 @@ export function useChat({
       if (!conversationId) {
         const { data, error } = await supabase
           .from('conversations')
-          .insert({ user_id: userId, title: autoTitle(text), model })
+          .insert({
+            user_id: userId,
+            title: autoTitle(text),
+            model,
+            collection_ids: collectionIds,
+          })
           .select('*')
           .single()
         if (error || !data) {
@@ -185,6 +194,8 @@ export function useChat({
             patchPending({ content: snapshot, status: undefined })
           } else if (event.type === 'status') {
             patchPending({ status: event.message })
+          } else if (event.type === 'sources') {
+            patchPending({ sources: event.sources })
           } else if (event.type === 'compacted') {
             onConversationUpdated({
               id: conversationId,
@@ -230,7 +241,16 @@ export function useChat({
         }
       }
     },
-    [model, streaming, messages, supabase, userId, onConversationCreated, onConversationUpdated]
+    [
+      model,
+      streaming,
+      messages,
+      supabase,
+      userId,
+      collectionIds,
+      onConversationCreated,
+      onConversationUpdated,
+    ]
   )
 
   /** Manual compaction of the active conversation. Returns an error string or null. */

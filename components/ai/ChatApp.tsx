@@ -4,16 +4,19 @@ import { useCallback, useEffect, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Menu, Minimize2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import type { Conversation, ModelInfo } from '@/lib/ai/types'
+import type { Collection, Conversation, ModelInfo } from '@/lib/ai/types'
 import { useAiBase } from './AiBaseProvider'
 import Sidebar from './Sidebar'
 import MessageList from './MessageList'
 import ContextMeter from './ContextMeter'
+import KnowledgePicker from './KnowledgePicker'
 import Composer from './Composer'
 import { useChat } from './useChat'
 import type { OllamaStatus } from './ModelSelect'
 
 const MODEL_STORAGE_KEY = 'ai-chat-model'
+/** Collections picked before a conversation exists; remembered for the next new chat. */
+const COLLECTIONS_STORAGE_KEY = 'ai-chat-collections'
 // First match wins when nothing is stored. Benchmarked on the RTX 4080 Laptop
 // host (12 GB VRAM + 64 GB RAM): qwen3.6 MoE ~72 tok/s, the others ~44 tok/s.
 const PREFERRED_MODELS = [
@@ -26,10 +29,12 @@ export default function ChatApp({
   userId,
   userEmail,
   initialConversations,
+  initialCollections,
 }: {
   userId: string
   userEmail: string
   initialConversations: Conversation[]
+  initialCollections: Collection[]
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -37,13 +42,60 @@ export default function ChatApp({
   const { href } = useAiBase()
 
   const [conversations, setConversations] = useState(initialConversations)
+  const [collections] = useState(initialCollections)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [models, setModels] = useState<ModelInfo[]>([])
   const [model, setModel] = useState<string | null>(null)
   const [status, setStatus] = useState<OllamaStatus>('checking')
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [knowledgeError, setKnowledgeError] = useState<string | null>(null)
 
   const activeId = searchParams.get('c')
+  const activeConversation = conversations.find((c) => c.id === activeId)
+
+  // Knowledge selection for a chat that has no row yet lives in local state
+  // (and localStorage so the choice sticks for the next new chat).
+  const [draftCollectionIds, setDraftCollectionIds] = useState<string[]>([])
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(COLLECTIONS_STORAGE_KEY)
+      const ids = raw ? (JSON.parse(raw) as string[]) : []
+      setDraftCollectionIds(ids.filter((id) => collections.some((c) => c.id === id)))
+    } catch {
+      // storage unavailable or corrupt
+    }
+  }, [collections])
+
+  const visibleIds = (ids: string[]) => ids.filter((id) => collections.some((c) => c.id === id))
+  const selectedIds = activeConversation
+    ? visibleIds(activeConversation.collection_ids ?? [])
+    : draftCollectionIds
+
+  async function toggleCollection(id: string) {
+    const next = selectedIds.includes(id)
+      ? selectedIds.filter((x) => x !== id)
+      : [...selectedIds, id]
+    setKnowledgeError(null)
+    if (!activeConversation) {
+      setDraftCollectionIds(next)
+      try {
+        localStorage.setItem(COLLECTIONS_STORAGE_KEY, JSON.stringify(next))
+      } catch {
+        // storage unavailable
+      }
+      return
+    }
+    const previous = activeConversation.collection_ids ?? []
+    onConversationUpdated({ ...activeConversation, collection_ids: next })
+    const { error } = await createClient()
+      .from('conversations')
+      .update({ collection_ids: next })
+      .eq('id', activeConversation.id)
+    if (error) {
+      onConversationUpdated({ ...activeConversation, collection_ids: previous })
+      setKnowledgeError(`Could not update knowledge selection: ${error.message}`)
+    }
+  }
 
   const onConversationCreated = useCallback(
     (conversation: Conversation) => {
@@ -59,7 +111,13 @@ export default function ChatApp({
     )
   }, [])
 
-  const chat = useChat({ userId, model, onConversationCreated, onConversationUpdated })
+  const chat = useChat({
+    userId,
+    model,
+    collectionIds: selectedIds,
+    onConversationCreated,
+    onConversationUpdated,
+  })
   const { loadConversation, reset } = chat
   const [compactError, setCompactError] = useState<string | null>(null)
 
@@ -150,8 +208,6 @@ export default function ChatApp({
     router.refresh()
   }
 
-  const activeConversation = conversations.find((c) => c.id === activeId)
-
   return (
     <div className="flex h-full w-full">
       <Sidebar
@@ -194,6 +250,13 @@ export default function ChatApp({
             </span>
           )}
           <div className="ml-auto flex items-center gap-3">
+            <KnowledgePicker
+              userId={userId}
+              collections={collections}
+              selectedIds={selectedIds}
+              onToggle={toggleCollection}
+              disabled={chat.streaming}
+            />
             {chat.usage && <ContextMeter usage={chat.usage} />}
             {activeConversation && chat.messages.length > 6 && (
               <button
@@ -214,9 +277,9 @@ export default function ChatApp({
             )}
           </div>
         </header>
-        {compactError && (
+        {(compactError || knowledgeError) && (
           <p className="border-b border-red-500/20 bg-red-500/10 px-4 py-1.5 text-xs text-red-300">
-            {compactError}
+            {compactError ?? knowledgeError}
           </p>
         )}
 
