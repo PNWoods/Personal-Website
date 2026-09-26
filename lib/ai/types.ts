@@ -159,6 +159,8 @@ export interface UserSettings {
   bubble_color: string
   /** Extract facts about the user after each reply (migration 0009). */
   memory_auto: boolean
+  /** How the user wants replies formatted, in their own words (migration 0011). */
+  custom_instructions: string
   created_at: string
   updated_at: string
 }

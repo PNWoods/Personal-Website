@@ -109,7 +109,8 @@ curl -s -H "CF-Access-Client-Id: $ID" -H "CF-Access-Client-Secret: $SECRET" \
    then `0008_user_settings.sql` (per-user settings such as the message color),
    then `0009_memories.sql` (per-user memory + the automatic-memory toggle),
    then `0010_knowledge_relevance.sql` (similarity in `match_chunks` for the relevance
-   gate, and the Auto knowledge mode flag).
+   gate, and the Auto knowledge mode flag),
+   then `0011_personalization.sql` (free-text reply preferences, Settings → Personalization).
 3. Confirm the manually created user still exists under **Authentication →
    Users** and that email signups remain disabled.
 4. The daily cron in `vercel.json` hits `/api/cron/keepalive`, which runs one

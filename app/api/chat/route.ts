@@ -6,6 +6,7 @@ import {
   NUM_CTX,
   buildPrompt,
   compactConversation,
+  formatInstructionsBlock,
   loadConversation,
   loadHistory,
   needsCompaction,
@@ -99,17 +100,25 @@ export async function POST(request: Request) {
   }
 
   // Per-user memory: what we already know, whether to keep learning, and an
-  // explicit "remember that ..." in this turn.
+  // explicit "remember that ..." in this turn. Plus the user's own reply
+  // preferences (Settings → Personalization).
   let memories: Memory[] = []
   let memoryAuto = true
+  let instructionsBlock = ''
   let justRemembered: string | null = null
   try {
     const [mem, settings] = await Promise.all([
       loadMemories(supabase, user.id),
-      supabase.from('user_settings').select('memory_auto').eq('user_id', user.id).maybeSingle(),
+      supabase
+        .from('user_settings')
+        .select('memory_auto, custom_instructions')
+        .eq('user_id', user.id)
+        .maybeSingle(),
     ])
     memories = mem
-    memoryAuto = (settings.data as { memory_auto?: boolean } | null)?.memory_auto !== false
+    const row = settings.data as { memory_auto?: boolean; custom_instructions?: string } | null
+    memoryAuto = row?.memory_auto !== false
+    instructionsBlock = formatInstructionsBlock(row?.custom_instructions)
     const latest = history[history.length - 1]
     const fact = latest?.role === 'user' ? parseRememberCommand(latest.content) : null
     if (fact) {
@@ -190,7 +199,8 @@ export async function POST(request: Request) {
         }
         const useKb = collectionIds.length > 0
         const useWeb = Boolean(conversation!.web_search)
-        if ((useKb || useWeb) && lastUser?.role === 'user') {
+        // A "remember that ..." turn is a command, not a question: no lookup.
+        if ((useKb || useWeb) && lastUser?.role === 'user' && !justRemembered) {
           const query = lastUser.content
           send({
             type: 'status',
@@ -243,6 +253,7 @@ export async function POST(request: Request) {
         let prompt = buildPrompt(conversation!, history, {
           knowledge: knowledge?.block,
           memories: memoryBlock,
+          instructions: instructionsBlock,
         })
         if (needsCompaction(prompt, history.length)) {
           send({ type: 'status', message: 'Compacting earlier messages…' })
@@ -259,6 +270,7 @@ export async function POST(request: Request) {
             prompt = buildPrompt(conversation, history, {
               knowledge: knowledge?.block,
               memories: memoryBlock,
+              instructions: instructionsBlock,
             })
             console.log(
               `[api/chat] compacted conversation=${conversationId} summarized=${result.summarizedCount} total=${conversation.summary_message_count}`
