@@ -133,7 +133,8 @@ curl -s -H "CF-Access-Client-Id: $ID" -H "CF-Access-Client-Secret: $SECRET" \
    | `OLLAMA_NUM_CTX` | context window requested per request (optional, default `32768`) |
    | `OLLAMA_EMBED_MODEL` | embedding model for knowledge bases (optional, default `qwen3-embedding:0.6b`, must be 1024-dim) |
    | `OLLAMA_VISION_MODEL` | model that transcribes uploaded images (optional, default `qwen3.6:35b-a3b-coding`) |
-   | `BRAVE_SEARCH_API_KEY` | enables the per-conversation "Web search" toggle (optional; free tier is 2,000 queries/month at brave.com/search/api) |
+   | `SEARXNG_URL` | enables the per-conversation "Web search" toggle via a self-hosted SearXNG, e.g. `https://search.pnwoods.com` (behind the same tunnel + Access token as Ollama; see "Web search" below) |
+   | `BRAVE_SEARCH_API_KEY` | alternative search provider (prepaid, $5 free credit ≈ 1,000 queries/month); used only when `SEARXNG_URL` is unset or `SEARCH_PROVIDER=brave` |
    | `RAG_TOP_K` / `RAG_TOKEN_BUDGET` | excerpts per turn and their token budget (optional, defaults `8` / `2500`) |
    | `CRON_SECRET` | `openssl rand -hex 32` |
    | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | already set |
@@ -153,6 +154,39 @@ curl -s -H "CF-Access-Client-Id: $ID" -H "CF-Access-Client-Secret: $SECRET" \
   hand and check the log shows `{"ok":true,...}`.
 - Turn the home PC off: the sidebar flips to "Ollama offline" with the tunnel
   message, and sending shows the same error instead of hanging.
+
+## Web search (SearXNG on the home network)
+
+SearXNG is a free, self-hosted metasearch engine. It runs on any always-on
+Linux box on the LAN (the Proxmox host is ideal) and is exposed through the
+same Cloudflare tunnel and Access service token as Ollama, so Vercel reaches
+it with the `CF_ACCESS_*` headers it already has.
+
+1. On the Linux host (Docker):
+
+   ```bash
+   mkdir -p ~/searxng && cd ~/searxng
+   docker run -d --name searxng --restart unless-stopped -p 8080:8080 \
+     -v "$PWD/config:/etc/searxng" -e BASE_URL=https://search.pnwoods.com/ \
+     searxng/searxng
+   ```
+
+   Then edit `config/settings.yml` (created on first start):
+   - under `search:` set `formats: [html, json]` (the JSON API is off by default)
+   - under `server:` set `limiter: false` (bot detection blocks API clients)
+   - under `server:` set a random `secret_key`
+
+   `docker restart searxng`, then `curl 'http://localhost:8080/search?q=test&format=json' | head -c 300`
+   should print JSON.
+2. Cloudflare tunnel (Tunnels → ollama → Routes → Add route → Published
+   application): subdomain `search`, domain `pnwoods.com`, service
+   `http://<host-lan-ip>:8080`.
+3. Cloudflare Access → Applications → edit the `ollama` application → add
+   `search.pnwoods.com` as a second public hostname (same Service Auth policy),
+   or create a second self-hosted app with the same policy. Verify:
+   `curl -s -o /dev/null -w '%{http_code}' https://search.pnwoods.com/` → `403`.
+4. Vercel: `SEARXNG_URL=https://search.pnwoods.com`, redeploy. Flip the Web
+   search toggle in the chat header.
 
 ## Local development
 
