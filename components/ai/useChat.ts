@@ -21,6 +21,8 @@ interface UseChatOptions {
   model: string | null
   /** Knowledge collections a brand-new conversation should start with. */
   collectionIds: string[]
+  /** Whether a brand-new conversation should start with web search on. */
+  webSearch: boolean
   onConversationCreated: (conversation: Conversation) => void
   onConversationUpdated: (conversation: Conversation) => void
 }
@@ -39,6 +41,7 @@ export function useChat({
   userId,
   model,
   collectionIds,
+  webSearch,
   onConversationCreated,
   onConversationUpdated,
 }: UseChatOptions) {
@@ -112,6 +115,7 @@ export function useChat({
             title: autoTitle(text),
             model,
             collection_ids: collectionIds,
+            web_search: webSearch,
           })
           .select('*')
           .single()
@@ -248,6 +252,7 @@ export function useChat({
       supabase,
       userId,
       collectionIds,
+      webSearch,
       onConversationCreated,
       onConversationUpdated,
     ]
