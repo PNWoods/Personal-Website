@@ -27,7 +27,8 @@ function baseUrl() {
   return url.replace(/\/+$/, '')
 }
 
-function accessHeaders(): Record<string, string> {
+/** Cloudflare Access service-token headers for anything behind the home tunnel. */
+export function accessHeaders(): Record<string, string> {
   const id = process.env.CF_ACCESS_CLIENT_ID
   const secret = process.env.CF_ACCESS_CLIENT_SECRET
   if (id && secret) {
