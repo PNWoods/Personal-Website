@@ -69,10 +69,26 @@ export default function DocumentDetail({
   // document-wide lookup would find the hidden one.
   useEffect(() => {
     if (!highlightChunkId || !chunks || scrolledTo.current === highlightChunkId) return
-    const el = listRef.current?.querySelector<HTMLElement>(`[data-chunk-id="${highlightChunkId}"]`)
-    if (el && el.offsetParent !== null) {
-      el.scrollIntoView({ block: 'center', behavior: 'smooth' })
-      scrolledTo.current = highlightChunkId
+    const container = listRef.current
+    if (!container) return
+    let cancelled = false
+    const attempt = (retriesLeft: number) => {
+      if (cancelled) return
+      const el = container.querySelector<HTMLElement>(`[data-chunk-id="${highlightChunkId}"]`)
+      if (!el || el.offsetParent === null) return
+      // Instant scroll: a smooth scroll gets cancelled by the re-render that
+      // follows the chunk fetch, leaving the list at the top.
+      el.scrollIntoView({ block: 'center', behavior: 'auto' })
+      const box = container.getBoundingClientRect()
+      const rect = el.getBoundingClientRect()
+      const inView = rect.top >= box.top - 4 && rect.top < box.bottom
+      if (inView) scrolledTo.current = highlightChunkId
+      else if (retriesLeft > 0) setTimeout(() => attempt(retriesLeft - 1), 250)
+    }
+    const raf = requestAnimationFrame(() => attempt(3))
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(raf)
     }
   }, [highlightChunkId, chunks])
 
