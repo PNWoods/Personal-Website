@@ -229,6 +229,12 @@ Tunnel route `search.pnwoods.com` → `http://192.168.1.105:8080`.
 4. Vercel: `SEARXNG_URL=https://search.pnwoods.com`, redeploy. Flip the Web
    search toggle in the chat header.
 
+## VS Code (Cline) on another machine
+
+See `docs/vscode-cline-c2m.md`: Cline through the tunnel with a dedicated
+Access service token, plus the SQLcl MCP server bundled in the Oracle SQL
+Developer extension for direct C2M queries.
+
 ## Local development
 
 `.env.local`:
