@@ -38,6 +38,7 @@ export default function DocumentDetail({
   const [content, setContent] = useState(doc.content ?? '')
   const [saving, setSaving] = useState(false)
   const scrolledTo = useRef<string | null>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   const a = ACCENTS[accent]
 
   useEffect(() => {
@@ -64,10 +65,12 @@ export default function DocumentDetail({
   }, [supabase, doc.id, doc.status, doc.chunk_count])
 
   // Once the chunks render, bring the cited one into view (once per target).
+  // Scoped to this panel: the page mounts a desktop and a mobile copy, and a
+  // document-wide lookup would find the hidden one.
   useEffect(() => {
     if (!highlightChunkId || !chunks || scrolledTo.current === highlightChunkId) return
-    const el = document.getElementById(`chunk-${highlightChunkId}`)
-    if (el) {
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-chunk-id="${highlightChunkId}"]`)
+    if (el && el.offsetParent !== null) {
       el.scrollIntoView({ block: 'center', behavior: 'smooth' })
       scrolledTo.current = highlightChunkId
     }
@@ -107,7 +110,7 @@ export default function DocumentDetail({
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-3 text-sm">
+      <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto p-3 text-sm">
         <dl className="mb-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs text-white/50">
           <dt>Type</dt>
           <dd>{doc.source_type}{doc.mime_type ? ` · ${doc.mime_type}` : ''}</dd>
@@ -178,7 +181,7 @@ export default function DocumentDetail({
                   return (
                     <li
                       key={c.id}
-                      id={`chunk-${c.id}`}
+                      data-chunk-id={c.id}
                       className={`rounded-lg border p-2 ${
                         cited ? `border-transparent ring-2 ${a.highlight}` : 'border-white/10 bg-white/[0.03]'
                       }`}
