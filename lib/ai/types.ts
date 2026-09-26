@@ -151,10 +151,23 @@ export interface ModelInfo {
   parameterSize?: string
 }
 
-/** Per-user chat preferences (migration 0008). */
+/** Per-user chat preferences (migration 0008, 0009). */
 export interface UserSettings {
   user_id: string
   bubble_color: string
+  /** Extract facts about the user after each reply (migration 0009). */
+  memory_auto: boolean
+  created_at: string
+  updated_at: string
+}
+
+/** A short durable fact about the user (migration 0009). */
+export interface Memory {
+  id: string
+  user_id: string
+  content: string
+  kind: 'auto' | 'manual'
+  source_conversation_id: string | null
   created_at: string
   updated_at: string
 }

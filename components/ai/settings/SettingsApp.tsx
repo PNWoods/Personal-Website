@@ -11,18 +11,23 @@ import {
   isAccentColor,
   type AccentColor,
 } from '@/lib/ai/theme'
-import type { UserSettings } from '@/lib/ai/types'
+import type { Memory, UserSettings } from '@/lib/ai/types'
 import { useAiBase } from '../AiBaseProvider'
+import MemorySection from './MemorySection'
 
 export default function SettingsApp({
   userId,
   userEmail,
   initialSettings,
+  initialMemories,
 }: {
   userId: string
   userEmail: string
   initialSettings: UserSettings | null
+  initialMemories: Memory[]
 }) {
+  const [memoryAuto, setMemoryAuto] = useState(initialSettings?.memory_auto !== false)
+  const [memoryError, setMemoryError] = useState<string | null>(null)
   const supabase = useMemo(() => createClient(), [])
   const { href } = useAiBase()
   const initial = isAccentColor(initialSettings?.bubble_color)
@@ -54,6 +59,18 @@ export default function SettingsApp({
     }
     setFlash(true)
     setTimeout(() => setFlash(false), 1500)
+  }
+
+  async function saveMemoryAuto(on: boolean) {
+    setMemoryAuto(on)
+    setMemoryError(null)
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({ user_id: userId, memory_auto: on }, { onConflict: 'user_id' })
+    if (error) {
+      setMemoryAuto(!on)
+      setMemoryError(`Could not save: ${error.message}`)
+    }
   }
 
   const a = ACCENTS[accent]
@@ -138,6 +155,15 @@ export default function SettingsApp({
               </button>
             </div>
           </section>
+
+          <MemorySection
+            userId={userId}
+            initialMemories={initialMemories}
+            memoryAuto={memoryAuto}
+            onMemoryAutoChange={saveMemoryAuto}
+            accent={a}
+          />
+          {memoryError && <p className="text-xs text-red-300">{memoryError}</p>}
         </div>
       </main>
     </div>
