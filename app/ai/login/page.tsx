@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -176,7 +176,7 @@ export default function AiLoginPage() {
           {error && <p className="text-sm text-red-400">{error}</p>}
           {notice && !error && <p className="text-sm text-white/60">{notice}</p>}
           <button type="submit" disabled={loading} className={buttonClass}>
-            {loading ? 'Checkingâ€¦' : 'Confirm'}
+            {loading ? 'Checking…' : 'Confirm'}
           </button>
           <div className="flex items-center justify-between">
             <button type="button" onClick={resendCode} disabled={loading} className={linkClass}>
@@ -243,7 +243,7 @@ export default function AiLoginPage() {
         )}
         {error && <p className="text-sm text-red-400">{error}</p>}
         <button type="submit" disabled={loading} className={buttonClass}>
-          {loading ? (signup ? 'Creatingâ€¦' : 'Signing inâ€¦') : signup ? 'Create account' : 'Sign in'}
+          {loading ? (signup ? 'Creating…' : 'Signing in…') : signup ? 'Create account' : 'Sign in'}
         </button>
         <p className="text-center">
           {signup ? (
