@@ -4,6 +4,8 @@ import type { createClient } from '@/lib/supabase/server'
 import type { IngestResponse, KnowledgeDocument } from '../types'
 import { chunkMarkdown, type ChunkDraft } from './chunk'
 import { EMBED_MODEL, embedInput, embedTexts } from './embed'
+import { extractFile } from './extract'
+import { detectKind } from './files'
 
 type Db = ReturnType<typeof createClient>
 
@@ -46,12 +48,22 @@ export function toResponse(doc: KnowledgeDocument): IngestResponse {
 }
 
 /**
- * Turn a document into chunk drafts. Notes are chunked from `content`; other
- * source types arrive with the file pipeline (storage download + extractors).
+ * Turn a document into chunk drafts. Notes are chunked from `content`; files
+ * are downloaded from the private bucket (as the owner, under storage RLS)
+ * and handed to the extractor for their kind.
  */
-async function extractChunks(doc: KnowledgeDocument): Promise<ChunkDraft[]> {
+async function extractChunks(db: Db, doc: KnowledgeDocument): Promise<ChunkDraft[]> {
   if (doc.source_type === 'note') {
     return chunkMarkdown(doc.content ?? '')
+  }
+  if (doc.source_type === 'file') {
+    if (!doc.storage_path) throw new Error('The file was never uploaded.')
+    const kind = detectKind(doc.storage_path, doc.mime_type)
+    if (!kind) throw new Error(`Unsupported file type: ${doc.storage_path.split('/').pop()}`)
+    const { data, error } = await db.storage.from('knowledge').download(doc.storage_path)
+    if (error || !data) throw new Error(`Could not download the file: ${error?.message ?? 'unknown'}`)
+    const buffer = new Uint8Array(await data.arrayBuffer())
+    return extractFile(kind, buffer)
   }
   if (doc.content) {
     // url/image sources store their extracted text for re-indexing
@@ -100,8 +112,14 @@ export async function runIngestStep(
     doc = claimed as KnowledgeDocument
 
     try {
-      const drafts = await extractChunks(doc)
-      if (drafts.length === 0) throw new Error('No text could be extracted.')
+      const drafts = await extractChunks(db, doc)
+      if (drafts.length === 0) {
+        throw new Error(
+          doc.source_type === 'file' && /\.pdf$/i.test(doc.storage_path ?? '')
+            ? 'No text could be extracted; this PDF looks scanned (image only).'
+            : 'No text could be extracted.'
+        )
+      }
 
       const { error: delError } = await db.from('chunks').delete().eq('document_id', doc.id)
       if (delError) throw new Error(`Failed to clear old chunks: ${delError.message}`)

@@ -224,6 +224,20 @@ export function chunkMarkdown(text: string): ChunkDraft[] {
 }
 
 /**
+ * Units that must not be parsed as markdown (CSV row groups, SQL statements):
+ * each unit is one opaque block, split by lines only if it exceeds CHUNK_MAX.
+ */
+export function chunkRawUnits(units: { section: string | null; content: string }[]): ChunkDraft[] {
+  const blocks: Block[] = []
+  for (const u of units) {
+    const text = u.content.trim()
+    if (!text) continue
+    blocks.push({ section: u.section, text, tokens: estimateTokens(text), fence: false })
+  }
+  return packBlocks(blocks)
+}
+
+/**
  * Pre-split units (pages, slides, table definitions): each unit keeps its own
  * section label and is windowed only if it is too large on its own.
  */

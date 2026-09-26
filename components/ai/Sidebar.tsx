@@ -1,7 +1,8 @@
 'use client'
 
-import { LogOut, MessageSquare, Plus, Trash2, X } from 'lucide-react'
+import { BookOpen, LogOut, MessageSquare, Plus, Trash2, X } from 'lucide-react'
 import type { Conversation, ModelInfo } from '@/lib/ai/types'
+import { useAiBase } from './AiBaseProvider'
 import ModelSelect, { type OllamaStatus } from './ModelSelect'
 
 export default function Sidebar({
@@ -37,6 +38,7 @@ export default function Sidebar({
   userEmail: string
   onSignOut: () => void
 }) {
+  const { href } = useAiBase()
   const panel = (
     <div className="flex h-full w-72 flex-col border-r border-white/10 bg-black/90 md:w-64 md:bg-black/40">
       <div className="flex items-center gap-2 p-3">
@@ -100,6 +102,13 @@ export default function Sidebar({
       </div>
 
       <div className="space-y-3 border-t border-white/10 p-3">
+        <a
+          href={href('/knowledge')}
+          className="flex h-9 items-center gap-2 rounded-lg px-2 text-sm text-white/70 hover:bg-white/10 hover:text-white"
+        >
+          <BookOpen size={15} className="opacity-70" />
+          Knowledge bases
+        </a>
         <ModelSelect
           models={models}
           value={model}

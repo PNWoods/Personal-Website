@@ -102,7 +102,9 @@ curl -s -H "CF-Access-Client-Id: $ID" -H "CF-Access-Client-Secret: $SECRET" \
    without API traffic). Wait until it reports healthy.
 2. SQL editor → paste and run `supabase/migrations/0003_chat_schema.sql`,
    then `0004_conversation_summary.sql` (compaction columns), then
-   `0005_knowledge_schema.sql` (pgvector, knowledge-base tables, `match_chunks`).
+   `0005_knowledge_schema.sql` (pgvector, knowledge-base tables, `match_chunks`),
+   then `0006_knowledge_storage.sql` (private `knowledge` bucket + object policies
+   for uploads; 50 MB per file, files live at `<user_id>/<document_id>/<name>`).
 3. Confirm the manually created user still exists under **Authentication →
    Users** and that email signups remain disabled.
 4. The daily cron in `vercel.json` hits `/api/cron/keepalive`, which runs one
