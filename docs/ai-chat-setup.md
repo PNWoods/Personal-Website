@@ -18,7 +18,7 @@ Code map:
 | Piece | Where |
 | --- | --- |
 | Host rewrite + auth gate | `middleware.ts` (`ai.pnwoods.com/*` → `/ai/*`) |
-| Pages | `app/ai/` (`/` chat, `/login`) |
+| Pages | `app/ai/` (`/` chat, `/login` sign in + sign up, `/knowledge`, `/settings`, `/auth/confirm` email-link landing) |
 | Ollama proxy | `app/api/chat/route.ts`, `app/api/models/route.ts`, `lib/ai/ollama.ts` |
 | Keep Supabase awake | `app/api/cron/keepalive/route.ts`, `vercel.json` |
 | Chat UI | `components/ai/` |
@@ -110,9 +110,24 @@ curl -s -H "CF-Access-Client-Id: $ID" -H "CF-Access-Client-Secret: $SECRET" \
    then `0009_memories.sql` (per-user memory + the automatic-memory toggle),
    then `0010_knowledge_relevance.sql` (similarity in `match_chunks` for the relevance
    gate, and the Auto knowledge mode flag),
-   then `0011_personalization.sql` (free-text reply preferences, Settings → Personalization).
-3. Confirm the manually created user still exists under **Authentication →
-   Users** and that email signups remain disabled.
+   then `0011_personalization.sql` (free-text reply preferences, Settings → Personalization),
+   then `0012_signup_invite.sql` (invite-code gate for self-service sign-up; see below).
+3. **Sign-up.** The login page has a "Create an account" form. To make it work:
+   - **Authentication → Sign In / Providers**: turn on **Allow new users to sign up**
+     and keep the **Email** provider enabled (leave **Confirm email** on so
+     addresses are verified; the link lands on `/auth/confirm`).
+   - **Authentication → URL Configuration**: Site URL `https://ai.pnwoods.com`,
+     and add `https://ai.pnwoods.com/auth/confirm` to **Redirect URLs**.
+   - Set the invite code (the migration inserts the placeholder `CHANGE-ME`):
+
+     ```sql
+     update public.app_config set value = 'your-code-here' where key = 'signup_invite_code';
+     ```
+
+     The trigger `on_auth_user_signup_invite` rejects any sign-up whose code
+     does not match. Set the value to `''` to open sign-up, and clear it
+     temporarily before creating a user from the dashboard (that insert runs
+     the same trigger).
 4. The daily cron in `vercel.json` hits `/api/cron/keepalive`, which runs one
    lightweight query so the project stays awake. It only runs on production
    deployments and only sends the bearer header when `CRON_SECRET` is set.

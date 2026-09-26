@@ -76,7 +76,13 @@ export async function middleware(request: NextRequest) {
 
   if (isAi) {
     const isLoginPage = internal === '/ai/login'
+    // Email confirmation / magic-link landing: reachable without a session.
+    const isAuthCallback = internal.startsWith('/ai/auth/')
 
+    if (isAuthCallback) {
+      response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+      return response
+    }
     if (!user && !isLoginPage) {
       return NextResponse.redirect(new URL(`${base}/login`, request.url))
     }
