@@ -1,23 +1,26 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { Upload } from 'lucide-react'
-import { ACCEPT, MAX_FILE_BYTES, detectKind, formatBytes } from '@/lib/ai/knowledge/files'
+import { Globe, Upload } from 'lucide-react'
+import { ACCEPT, MAX_FILE_BYTES, MAX_IMAGE_BYTES, detectKind, formatBytes, maxBytesFor } from '@/lib/ai/knowledge/files'
 
-type Tab = 'upload' | 'note'
+type Tab = 'upload' | 'note' | 'url'
 
 export default function AddDocument({
   onFiles,
   onNote,
+  onUrl,
   busy,
 }: {
   onFiles: (files: File[]) => Promise<void>
   onNote: (title: string, content: string) => Promise<void>
+  onUrl: (url: string) => Promise<void>
   busy: boolean
 }) {
   const [tab, setTab] = useState<Tab>('upload')
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
+  const [url, setUrl] = useState('')
   const [dragging, setDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -27,12 +30,14 @@ export default function AddDocument({
     const files = Array.from(list)
     const rejected: string[] = []
     const ok = files.filter((f) => {
-      if (!detectKind(f.name, f.type)) {
+      const kind = detectKind(f.name, f.type)
+      if (!kind) {
         rejected.push(`${f.name}: unsupported type`)
         return false
       }
-      if (f.size > MAX_FILE_BYTES) {
-        rejected.push(`${f.name}: larger than ${formatBytes(MAX_FILE_BYTES)}`)
+      const max = maxBytesFor(kind)
+      if (f.size > max) {
+        rejected.push(`${f.name}: larger than ${formatBytes(max)}`)
         return false
       }
       return true
@@ -50,6 +55,19 @@ export default function AddDocument({
     setContent('')
   }
 
+  async function submitUrl(e: React.FormEvent) {
+    e.preventDefault()
+    const trimmed = url.trim()
+    if (!trimmed || busy) return
+    setError(null)
+    if (!/^https?:\/\//i.test(trimmed)) {
+      setError('Enter a full http(s) URL.')
+      return
+    }
+    await onUrl(trimmed)
+    setUrl('')
+  }
+
   const tabClass = (t: Tab) =>
     `px-3 py-1.5 text-sm rounded-md ${tab === t ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white'}`
 
@@ -62,9 +80,12 @@ export default function AddDocument({
         <button type="button" className={tabClass('note')} onClick={() => setTab('note')}>
           Write note
         </button>
+        <button type="button" className={tabClass('url')} onClick={() => setTab('url')}>
+          Web page
+        </button>
       </div>
 
-      {tab === 'upload' ? (
+      {tab === 'upload' && (
         <div
           onDragOver={(e) => {
             e.preventDefault()
@@ -99,10 +120,13 @@ export default function AddDocument({
             onChange={(e) => e.target.files && void handleFiles(e.target.files)}
           />
           <p className="text-xs text-white/40">
-            txt, md, csv, sql, pdf, docx, pptx · up to {formatBytes(MAX_FILE_BYTES)} each
+            txt, md, csv, sql, pdf, docx, pptx up to {formatBytes(MAX_FILE_BYTES)} · png, jpg, webp,
+            gif up to {formatBytes(MAX_IMAGE_BYTES)} (transcribed by the vision model)
           </p>
         </div>
-      ) : (
+      )}
+
+      {tab === 'note' && (
         <form onSubmit={submitNote} className="space-y-2">
           <input
             value={title}
@@ -126,6 +150,33 @@ export default function AddDocument({
               Save and index
             </button>
           </div>
+        </form>
+      )}
+
+      {tab === 'url' && (
+        <form onSubmit={submitUrl} className="space-y-2">
+          <div className="flex gap-2">
+            <div className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 focus-within:border-blue-500">
+              <Globe size={14} className="shrink-0 text-white/40" />
+              <input
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://docs.example.com/page"
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder-white/40"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={!url.trim() || busy}
+              className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white disabled:opacity-40"
+            >
+              Fetch and index
+            </button>
+          </div>
+          <p className="text-xs text-white/40">
+            Public pages only (no logins), up to 5 MB. The page text is stored so it can be re-indexed
+            without fetching again.
+          </p>
         </form>
       )}
       {error && <p className="mt-2 text-xs text-red-300">{error}</p>}

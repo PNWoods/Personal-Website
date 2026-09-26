@@ -4,29 +4,47 @@ import { chunkMarkdown, type ChunkDraft } from '../chunk'
 import type { FileKind } from '../files'
 import { extractCsv } from './csv'
 import { extractDocx } from './docx'
+import { describeImage } from './image'
 import { extractPdf } from './pdf'
 import { extractPptx } from './pptx'
 import { extractSql } from './sql'
+
+export interface Extracted {
+  chunks: ChunkDraft[]
+  /**
+   * Text worth persisting on the document so a re-index does not repeat
+   * expensive work (image transcription) or a network fetch (web pages).
+   */
+  content?: string
+}
 
 function utf8(buffer: Uint8Array): string {
   return new TextDecoder('utf-8').decode(buffer).replace(/^﻿/, '')
 }
 
 /** Turn an uploaded file into chunk drafts according to its detected kind. */
-export async function extractFile(kind: FileKind, buffer: Uint8Array): Promise<ChunkDraft[]> {
+export async function extractFile(
+  kind: FileKind,
+  buffer: Uint8Array,
+  opts: { signal?: AbortSignal } = {}
+): Promise<Extracted> {
   switch (kind) {
     case 'text':
     case 'markdown':
-      return chunkMarkdown(utf8(buffer))
+      return { chunks: chunkMarkdown(utf8(buffer)) }
     case 'csv':
-      return extractCsv(utf8(buffer))
+      return { chunks: extractCsv(utf8(buffer)) }
     case 'sql':
-      return extractSql(utf8(buffer))
+      return { chunks: extractSql(utf8(buffer)) }
     case 'pdf':
-      return extractPdf(buffer)
+      return { chunks: await extractPdf(buffer) }
     case 'docx':
-      return extractDocx(Buffer.from(buffer))
+      return { chunks: await extractDocx(Buffer.from(buffer)) }
     case 'pptx':
-      return extractPptx(buffer)
+      return { chunks: extractPptx(buffer) }
+    case 'image': {
+      const content = await describeImage(buffer, opts)
+      return { chunks: chunkMarkdown(content), content }
+    }
   }
 }

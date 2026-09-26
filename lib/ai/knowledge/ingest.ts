@@ -2,9 +2,12 @@ import 'server-only'
 
 import type { createClient } from '@/lib/supabase/server'
 import type { IngestResponse, KnowledgeDocument } from '../types'
-import { chunkMarkdown, type ChunkDraft } from './chunk'
+import { chunkMarkdown } from './chunk'
 import { EMBED_MODEL, embedInput, embedTexts } from './embed'
-import { extractFile } from './extract'
+import { extractFile, type Extracted } from './extract'
+import { htmlToMarkdown, pageTitle } from './extract/html'
+import { extractPdf } from './extract/pdf'
+import { fetchUrl } from './fetchUrl'
 import { detectKind } from './files'
 
 type Db = ReturnType<typeof createClient>
@@ -48,28 +51,57 @@ export function toResponse(doc: KnowledgeDocument): IngestResponse {
 }
 
 /**
- * Turn a document into chunk drafts. Notes are chunked from `content`; files
- * are downloaded from the private bucket (as the owner, under storage RLS)
- * and handed to the extractor for their kind.
+ * Turn a document into chunk drafts (plus text/title worth persisting).
+ * Notes are chunked from `content`; files are downloaded from the private
+ * bucket (as the owner, under storage RLS) and handed to the extractor for
+ * their kind; web pages are fetched with SSRF guards. Images and web pages
+ * keep their extracted text in `content` so a re-index is cheap and offline.
  */
-async function extractChunks(db: Db, doc: KnowledgeDocument): Promise<ChunkDraft[]> {
+async function extractDocument(
+  db: Db,
+  doc: KnowledgeDocument,
+  signal?: AbortSignal
+): Promise<Extracted & { title?: string }> {
   if (doc.source_type === 'note') {
-    return chunkMarkdown(doc.content ?? '')
+    return { chunks: chunkMarkdown(doc.content ?? '') }
   }
+
   if (doc.source_type === 'file') {
     if (!doc.storage_path) throw new Error('The file was never uploaded.')
     const kind = detectKind(doc.storage_path, doc.mime_type)
     if (!kind) throw new Error(`Unsupported file type: ${doc.storage_path.split('/').pop()}`)
+    if (kind === 'image' && doc.content) {
+      // transcription already done; re-index without calling the vision model
+      return { chunks: chunkMarkdown(doc.content) }
+    }
     const { data, error } = await db.storage.from('knowledge').download(doc.storage_path)
     if (error || !data) throw new Error(`Could not download the file: ${error?.message ?? 'unknown'}`)
     const buffer = new Uint8Array(await data.arrayBuffer())
-    return extractFile(kind, buffer)
+    return extractFile(kind, buffer, { signal })
   }
-  if (doc.content) {
-    // url/image sources store their extracted text for re-indexing
-    return chunkMarkdown(doc.content)
+
+  if (doc.source_type === 'url') {
+    if (!doc.source_url) throw new Error('No URL on this document.')
+    if (doc.content) return { chunks: chunkMarkdown(doc.content) }
+    const fetched = await fetchUrl(doc.source_url, { signal })
+    const ct = fetched.contentType
+    if (ct.includes('text/html') || ct.includes('application/xhtml')) {
+      const html = new TextDecoder('utf-8').decode(fetched.body)
+      const content = htmlToMarkdown(html)
+      const title = pageTitle(html) ?? undefined
+      return { chunks: chunkMarkdown(content), content, title }
+    }
+    if (ct.includes('application/pdf')) {
+      return { chunks: await extractPdf(fetched.body) }
+    }
+    if (ct.startsWith('text/') || ct.includes('json') || ct === '') {
+      const content = new TextDecoder('utf-8').decode(fetched.body)
+      return { chunks: chunkMarkdown(content), content }
+    }
+    throw new Error(`Unsupported content type from that URL: ${ct || 'unknown'}`)
   }
-  throw new Error(`Source type "${doc.source_type}" is not supported yet.`)
+
+  throw new Error(`Source type "${doc.source_type}" is not supported.`)
 }
 
 /**
@@ -112,7 +144,8 @@ export async function runIngestStep(
     doc = claimed as KnowledgeDocument
 
     try {
-      const drafts = await extractChunks(db, doc)
+      const extracted = await extractDocument(db, doc, opts.signal)
+      const drafts = extracted.chunks
       if (drafts.length === 0) {
         throw new Error(
           doc.source_type === 'file' && /\.pdf$/i.test(doc.storage_path ?? '')
@@ -142,6 +175,10 @@ export async function runIngestStep(
         chunk_count: drafts.length,
         embedded_count: 0,
         embedding_model: EMBED_MODEL,
+        ...(extracted.content !== undefined ? { content: extracted.content } : {}),
+        ...(extracted.title && (doc.title === doc.source_url || !doc.title)
+          ? { title: extracted.title }
+          : {}),
       })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Extraction failed.'
