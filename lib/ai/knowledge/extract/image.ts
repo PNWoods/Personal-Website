@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { NUM_CTX } from '../../context'
 import { OllamaError, ollamaFetch } from '../../ollama'
 
 /**
@@ -28,7 +29,9 @@ export async function describeImage(
       stream: false,
       think: false,
       keep_alive: '30m',
-      options: { num_ctx: 8192, num_predict: 2500, temperature: 0.1 },
+      // Same num_ctx as the chat so Ollama keeps the loaded model instead of
+      // reloading it (~20 s) for a different context size.
+      options: { num_ctx: NUM_CTX, num_predict: 2500, temperature: 0.1 },
       messages: [
         {
           role: 'user',
