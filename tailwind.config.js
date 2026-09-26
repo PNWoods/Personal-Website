@@ -4,6 +4,8 @@ module.exports = {
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
+    // class-name tables such as lib/ai/theme.ts
+    './lib/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {
