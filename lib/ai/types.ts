@@ -15,6 +15,8 @@ export interface Conversation {
   collection_ids: string[]
   /** Also run a web search for every message (migration 0007). */
   web_search: boolean
+  /** Search every visible collection and let the relevance gate decide (migration 0010). */
+  knowledge_auto: boolean
 }
 
 export interface Message {

@@ -181,7 +181,14 @@ export async function POST(request: Request) {
         //    when collections are selected, live web results when the web
         //    toggle is on. Both run together; either failing just drops out.
         const lastUser = history[history.length - 1]
-        const useKb = Boolean(conversation!.collection_ids?.length)
+        // Auto mode: every collection the user can see, relevance gate decides.
+        let collectionIds: string[] = conversation!.collection_ids ?? []
+        const autoKb = Boolean(conversation!.knowledge_auto)
+        if (autoKb) {
+          const { data: visible } = await supabase.from('collections').select('id')
+          collectionIds = ((visible as { id: string }[] | null) ?? []).map((c) => c.id)
+        }
+        const useKb = collectionIds.length > 0
         const useWeb = Boolean(conversation!.web_search)
         if ((useKb || useWeb) && lastUser?.role === 'user') {
           const query = lastUser.content
@@ -199,7 +206,7 @@ export async function POST(request: Request) {
             useKb
               ? retrieveKnowledge(supabase, {
                   query,
-                  collectionIds: conversation!.collection_ids,
+                  collectionIds,
                   tokenBudget: kbBudget,
                   signal: upstreamAbort.signal,
                 }).catch((err: unknown) => {
@@ -221,9 +228,15 @@ export async function POST(request: Request) {
 
           knowledge = assembleRetrieval([...kb, ...web.excerpts])
           console.log(
-            `[api/chat] retrieved conversation=${conversationId} kb=${kb.length} web=${web.excerpts.length}${web.note ? ` (${web.note})` : ''}`
+            `[api/chat] retrieved conversation=${conversationId} auto=${autoKb} collections=${collectionIds.length} kb=${kb.length} web=${web.excerpts.length}${web.note ? ` (${web.note})` : ''}`
           )
-          send({ type: 'sources', sources: knowledge.sources })
+          // In auto mode an empty result just means "not a knowledge question";
+          // say nothing. With explicit selections, "no matches" is useful feedback.
+          if (knowledge.sources.length > 0 || !autoKb) {
+            send({ type: 'sources', sources: knowledge.sources })
+          } else {
+            knowledge = null
+          }
         }
 
         // 2. Fit the prompt into the window, compacting older turns if needed.
