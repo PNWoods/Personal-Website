@@ -14,6 +14,13 @@ type Db = ReturnType<typeof createClient>
 
 /** Chunks embedded per Ollama call. */
 const EMBED_BATCH = 32
+/**
+ * Embedding rows written at the same time. Each write inserts into the HNSW
+ * index; 32 at once queued behind each other on Supabase's small instance and
+ * the last ones tripped the 8 s statement timeout once the index held a few
+ * thousand vectors.
+ */
+const STORE_PARALLEL = 4
 /** Chunk rows inserted per statement. */
 const INSERT_BATCH = 100
 /** An `extracting` claim older than this is assumed dead (function timed out). */
@@ -37,6 +44,15 @@ async function updateDocument(
     .single()
   if (error || !data) throw new Error(`Failed to update document: ${error?.message}`)
   return data as KnowledgeDocument
+}
+
+async function hasUnembeddedChunks(db: Db, documentId: string): Promise<boolean> {
+  const { count } = await db
+    .from('chunks')
+    .select('id', { count: 'exact', head: true })
+    .eq('document_id', documentId)
+    .is('embedding', null)
+  return (count ?? 0) > 0
 }
 
 export function toResponse(doc: KnowledgeDocument): IngestResponse {
@@ -128,6 +144,12 @@ export async function runIngestStep(
     doc = await updateDocument(db, doc.id, { status: 'pending' })
   }
 
+  // A failure during the embedding phase (timeout, Ollama hiccup) leaves the
+  // chunks in place; pick up where it stopped instead of re-extracting.
+  if (doc.status === 'error' && (await hasUnembeddedChunks(db, doc.id))) {
+    doc = await updateDocument(db, doc.id, { status: 'embedding', error: null })
+  }
+
   if (doc.status === 'pending') {
     const { data: claimed } = await db
       .from('documents')
@@ -214,16 +236,28 @@ export async function runIngestStep(
           batch.map((c) => embedInput(doc!.title, c.section, c.content)),
           { kind: 'document', signal: opts.signal }
         )
-        const results = await Promise.all(
-          batch.map((c, i) =>
-            db.from('chunks').update({ embedding: JSON.stringify(vectors[i]) }).eq('id', c.id)
+        for (let i = 0; i < batch.length; i += STORE_PARALLEL) {
+          const results = await Promise.all(
+            batch.slice(i, i + STORE_PARALLEL).map((c, j) =>
+              db
+                .from('chunks')
+                .update({ embedding: JSON.stringify(vectors[i + j]) })
+                .eq('id', c.id)
+            )
           )
-        )
-        const failed = results.find((r) => r.error)
-        if (failed?.error) throw new Error(`Failed to store embeddings: ${failed.error.message}`)
+          const failed = results.find((r) => r.error)
+          if (failed?.error) throw new Error(`Failed to store embeddings: ${failed.error.message}`)
+        }
 
+        // Count what is actually stored rather than trusting the running
+        // total: a second tab may be working on the same document.
+        const { count: remaining } = await db
+          .from('chunks')
+          .select('id', { count: 'exact', head: true })
+          .eq('document_id', doc.id)
+          .is('embedding', null)
         doc = await updateDocument(db, doc.id, {
-          embedded_count: Math.min(doc.chunk_count, doc.embedded_count + batch.length),
+          embedded_count: Math.max(0, doc.chunk_count - (remaining ?? 0)),
         })
       }
     } catch (err) {
