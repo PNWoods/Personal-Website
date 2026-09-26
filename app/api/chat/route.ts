@@ -166,9 +166,12 @@ export async function POST(request: Request) {
           })
         }
       } catch (err) {
-        const aborted = (err as Error)?.name === 'AbortError'
-        if (aborted && closed) {
-          // Client disconnected or pressed Stop: expected.
+        if ((err as Error)?.name === 'AbortError') {
+          // Client disconnected / Stop, or request.signal fired. Partial reply
+          // is persisted in finally; log so Vercel shows which path it was.
+          console.log(
+            `[api/chat] aborted model=${model} chunks=${chunks} chars=${full.length} clientClosed=${closed}`
+          )
         } else {
           console.error(
             `[api/chat] stream error model=${model} chunks=${chunks} chars=${full.length}`,
@@ -203,10 +206,9 @@ export async function POST(request: Request) {
     },
   })
 
-  // Deliberately NOT wiring request.signal to upstreamAbort: in Next 14 on
-  // Vercel it can fire once the handler returns, which killed the Ollama
-  // stream mid-reply and produced an empty assistant message with no error.
-  // cancel() above (client disconnect / Stop button) is the only abort path.
+  // request.signal is unreliable in Next 14 route handlers; cancel() above is
+  // the primary path, this is belt and braces.
+  request.signal?.addEventListener('abort', () => upstreamAbort.abort())
 
   return new Response(stream, {
     headers: {
