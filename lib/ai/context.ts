@@ -2,7 +2,10 @@ import 'server-only'
 
 import type { createClient } from '@/lib/supabase/server'
 import { OllamaError, ollamaFetch } from './ollama'
+import { estimateTokens } from './tokens'
 import type { Conversation, Message, Role } from './types'
+
+export { estimateTokens }
 
 /**
  * Context-window management for the chat proxy.
@@ -33,7 +36,17 @@ const SUMMARY_MAX_TOKENS = 1500
 /** Max messages loaded per request; anything older must be compacted first. */
 const HISTORY_LIMIT = 400
 
-export const SYSTEM_PROMPT = `You are a private coding assistant for a senior software engineer. Be precise and concrete: prefer working code and exact commands over prose, keep identifiers, file paths, versions, and numbers exactly as given, and say clearly when you are unsure rather than guessing.`
+/**
+ * Base system prompt. The date matters: the model's training data ends well
+ * before today, so without it the model assumes it is still ~2024 and argues
+ * with newer facts from the knowledge base.
+ */
+export function systemPrompt(now: Date = new Date()): string {
+  const date = now.toISOString().slice(0, 10)
+  return `You are a private coding assistant for a senior software engineer. Be precise and concrete: prefer working code and exact commands over prose, keep identifiers, file paths, versions, and numbers exactly as given, and say clearly when you are unsure rather than guessing.
+
+Today is ${date} (UTC). Your training data ends before that date. For anything recent, rely on knowledge base excerpts and information in the conversation over your own memory, and do not assume the current year from your training.`
+}
 
 const COMPACT_SYSTEM = `You compact chat transcripts so a conversation can continue with limited context. Write a dense, factual summary in Markdown with these sections, omitting any that are empty:
 
@@ -42,16 +55,11 @@ const COMPACT_SYSTEM = `You compact chat transcripts so a conversation can conti
 ## Code, files and commands (keep exact names, paths, snippets that matter)
 ## Open questions and next steps
 
-Preserve exact identifiers, error messages, numbers and URLs. Do not add commentary, do not answer the user, do not mention that this is a summary.`
+Preserve exact identifiers, error messages, numbers and URLs. Citation markers such as [2] or [2: Some document] refer to per-reply source lists; keep the fact and, if useful, the source title, but never keep the bracketed number. Do not add commentary, do not answer the user, do not mention that this is a summary.`
 
 export interface PromptMessage {
   role: Role
   content: string
-}
-
-/** Rough tokenizer-free estimate; ~3.5 chars/token is conservative for code. */
-export function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 3.5)
 }
 
 /** Includes ~4 tokens of chat-template overhead per message. */
@@ -91,15 +99,38 @@ export async function loadHistory(
 
 export function buildPrompt(
   conversation: Conversation,
-  history: Message[]
+  history: Message[],
+  opts: { knowledge?: string } = {}
 ): PromptMessage[] {
-  const system = conversation.summary
-    ? `${SYSTEM_PROMPT}\n\n## Earlier in this conversation (compacted)\n${conversation.summary}`
-    : SYSTEM_PROMPT
+  let system = systemPrompt()
+  if (conversation.summary) {
+    system += `\n\n## Earlier in this conversation (compacted)\n${conversation.summary}`
+  }
+  if (opts.knowledge) {
+    system += `\n\n${opts.knowledge}`
+  }
   return [
     { role: 'system', content: system },
     ...history.map((m) => ({ role: m.role, content: m.content })),
   ]
+}
+
+const CITATION = /\[(\d{1,3})\]/g
+
+/**
+ * Citation numbers only mean something next to the source list of the reply
+ * they appeared in. For the compaction transcript, replace them with the
+ * source title (or drop them) so the summary never carries dead numbers.
+ */
+function renderForSummary(m: Message): string {
+  if (m.role !== 'assistant' || !m.sources?.length) {
+    return m.content.replace(CITATION, '')
+  }
+  const sources = m.sources
+  return m.content.replace(CITATION, (_all, num: string) => {
+    const src = sources[Number(num) - 1]
+    return src ? ` [${num}: ${src.title}]` : ''
+  })
 }
 
 export function needsCompaction(
@@ -131,7 +162,7 @@ async function summarize(
   signal?: AbortSignal
 ): Promise<string> {
   const transcript = batch
-    .map((m) => `${m.role.toUpperCase()}:\n${m.content}`)
+    .map((m) => `${m.role.toUpperCase()}:\n${renderForSummary(m)}`)
     .join('\n\n---\n\n')
   const user = priorSummary
     ? `Existing summary of even earlier messages (fold it in, do not drop anything from it):\n\n${priorSummary}\n\n=====\n\nTranscript to add:\n\n${transcript}`
