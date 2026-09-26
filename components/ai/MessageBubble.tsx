@@ -2,12 +2,19 @@
 
 import { useMemo, useState } from 'react'
 import type { ChatMessage } from '@/lib/ai/types'
+import { ACCENTS, DEFAULT_ACCENT, type AccentColor } from '@/lib/ai/theme'
 import Markdown from './Markdown'
 import SourcesList from './SourcesList'
 
 const MARKER = /\[(\d{1,3})\]/g
 
-export default function MessageBubble({ message }: { message: ChatMessage }) {
+export default function MessageBubble({
+  message,
+  accent = DEFAULT_ACCENT,
+}: {
+  message: ChatMessage
+  accent?: AccentColor
+}) {
   const [activeN, setActiveN] = useState<number | null>(null)
   const sources = message.sources
   const citedNumbers = useMemo(() => {
@@ -25,7 +32,9 @@ export default function MessageBubble({ message }: { message: ChatMessage }) {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl border border-blue-500/30 bg-blue-600/20 px-4 py-2.5 text-[15px] leading-relaxed">
+        <div
+          className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl border px-4 py-2.5 text-[15px] leading-relaxed ${ACCENTS[accent].bubble}`}
+        >
           {message.content}
         </div>
       </div>

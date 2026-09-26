@@ -1,6 +1,6 @@
 'use client'
 
-import { BookOpen, LogOut, MessageSquare, Plus, Trash2, X } from 'lucide-react'
+import { BookOpen, LogOut, MessageSquare, Plus, Settings, Trash2, X } from 'lucide-react'
 import type { Conversation, ModelInfo } from '@/lib/ai/types'
 import { useAiBase } from './AiBaseProvider'
 import ModelSelect, { type OllamaStatus } from './ModelSelect'
@@ -102,13 +102,23 @@ export default function Sidebar({
       </div>
 
       <div className="space-y-3 border-t border-white/10 p-3">
-        <a
-          href={href('/knowledge')}
-          className="flex h-9 items-center gap-2 rounded-lg px-2 text-sm text-white/70 hover:bg-white/10 hover:text-white"
-        >
-          <BookOpen size={15} className="opacity-70" />
-          Knowledge bases
-        </a>
+        <div className="flex gap-1">
+          <a
+            href={href('/knowledge')}
+            className="flex h-9 flex-1 items-center gap-2 rounded-lg px-2 text-sm text-white/70 hover:bg-white/10 hover:text-white"
+          >
+            <BookOpen size={15} className="opacity-70" />
+            Knowledge bases
+          </a>
+          <a
+            href={href('/settings')}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-white/70 hover:bg-white/10 hover:text-white"
+            title="Settings"
+            aria-label="Settings"
+          >
+            <Settings size={15} className="opacity-70" />
+          </a>
+        </div>
         <ModelSelect
           models={models}
           value={model}

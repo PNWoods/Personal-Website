@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Menu, Minimize2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import type { Collection, Conversation, ModelInfo } from '@/lib/ai/types'
+import type { Collection, Conversation, ModelInfo, UserSettings } from '@/lib/ai/types'
+import { ACCENT_STORAGE_KEY, DEFAULT_ACCENT, isAccentColor, type AccentColor } from '@/lib/ai/theme'
 import { useAiBase } from './AiBaseProvider'
 import Sidebar from './Sidebar'
 import MessageList from './MessageList'
@@ -31,11 +32,13 @@ export default function ChatApp({
   userEmail,
   initialConversations,
   initialCollections,
+  initialSettings,
 }: {
   userId: string
   userEmail: string
   initialConversations: Conversation[]
   initialCollections: Collection[]
+  initialSettings: UserSettings | null
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -44,6 +47,20 @@ export default function ChatApp({
 
   const [conversations, setConversations] = useState(initialConversations)
   const [collections] = useState(initialCollections)
+  // Accent color: DB value wins; localStorage covers the moment before the
+  // first server render after a change on another tab.
+  const [accent, setAccent] = useState<AccentColor>(
+    isAccentColor(initialSettings?.bubble_color) ? initialSettings.bubble_color : DEFAULT_ACCENT
+  )
+  useEffect(() => {
+    if (initialSettings) return
+    try {
+      const stored = localStorage.getItem(ACCENT_STORAGE_KEY)
+      if (isAccentColor(stored)) setAccent(stored)
+    } catch {
+      // storage unavailable
+    }
+  }, [initialSettings])
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [models, setModels] = useState<ModelInfo[]>([])
   const [model, setModel] = useState<string | null>(null)
@@ -322,7 +339,7 @@ export default function ChatApp({
             Loading…
           </div>
         ) : (
-          <MessageList messages={chat.messages} model={model} />
+          <MessageList messages={chat.messages} model={model} accent={accent} />
         )}
 
         <Composer
@@ -330,6 +347,7 @@ export default function ChatApp({
           streaming={chat.streaming}
           onSend={chat.send}
           onStop={chat.stop}
+          accent={accent}
         />
       </div>
     </div>

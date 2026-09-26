@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowDown } from 'lucide-react'
 import type { ChatMessage } from '@/lib/ai/types'
+import { DEFAULT_ACCENT, type AccentColor } from '@/lib/ai/theme'
 import MessageBubble from './MessageBubble'
 
 const BOTTOM_THRESHOLD = 80
@@ -10,9 +11,11 @@ const BOTTOM_THRESHOLD = 80
 export default function MessageList({
   messages,
   model,
+  accent = DEFAULT_ACCENT,
 }: {
   messages: ChatMessage[]
   model: string | null
+  accent?: AccentColor
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [atBottom, setAtBottom] = useState(true)
@@ -55,7 +58,7 @@ export default function MessageList({
       >
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
           {messages.map((m) => (
-            <MessageBubble key={m.id} message={m} />
+            <MessageBubble key={m.id} message={m} accent={accent} />
           ))}
         </div>
       </div>

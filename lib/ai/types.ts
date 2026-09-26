@@ -150,3 +150,11 @@ export interface ModelInfo {
   size: number
   parameterSize?: string
 }
+
+/** Per-user chat preferences (migration 0008). */
+export interface UserSettings {
+  user_id: string
+  bubble_color: string
+  created_at: string
+  updated_at: string
+}
