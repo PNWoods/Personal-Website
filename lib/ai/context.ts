@@ -97,12 +97,32 @@ export async function loadHistory(
   return (data as Message[] | null) ?? []
 }
 
+/** Longest custom-instructions text accepted (matches the DB check). */
+export const INSTRUCTIONS_MAX_CHARS = 2000
+
+/**
+ * System-prompt section for the user's own formatting/style preferences
+ * (Settings → Personalization). Framed as preferences so they shape the
+ * answer without overriding the task itself.
+ */
+export function formatInstructionsBlock(text: string | null | undefined): string {
+  const body = (text ?? '').trim().slice(0, INSTRUCTIONS_MAX_CHARS)
+  if (!body) return ''
+  return `## How the user wants replies (their own words)
+Follow these preferences in every reply unless the user asks for something else in the conversation.
+
+${body}`
+}
+
 export function buildPrompt(
   conversation: Conversation,
   history: Message[],
-  opts: { knowledge?: string; memories?: string } = {}
+  opts: { knowledge?: string; memories?: string; instructions?: string } = {}
 ): PromptMessage[] {
   let system = systemPrompt()
+  if (opts.instructions) {
+    system += `\n\n${opts.instructions}`
+  }
   if (opts.memories) {
     system += `\n\n${opts.memories}`
   }
