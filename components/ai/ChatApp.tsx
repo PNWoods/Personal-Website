@@ -19,6 +19,7 @@ const MODEL_STORAGE_KEY = 'ai-chat-model'
 /** Collections picked before a conversation exists; remembered for the next new chat. */
 const COLLECTIONS_STORAGE_KEY = 'ai-chat-collections'
 const WEB_STORAGE_KEY = 'ai-chat-web'
+const AUTO_STORAGE_KEY = 'ai-chat-knowledge-auto'
 // First match wins when nothing is stored. Benchmarked on the RTX 4080 Laptop
 // host (12 GB VRAM + 64 GB RAM): qwen3.6 MoE ~72 tok/s, the others ~44 tok/s.
 const PREFERRED_MODELS = [
@@ -75,18 +76,44 @@ export default function ChatApp({
   // (and localStorage so the choice sticks for the next new chat).
   const [draftCollectionIds, setDraftCollectionIds] = useState<string[]>([])
   const [draftWeb, setDraftWeb] = useState(false)
+  const [draftAuto, setDraftAuto] = useState(false)
   useEffect(() => {
     try {
       const raw = localStorage.getItem(COLLECTIONS_STORAGE_KEY)
       const ids = raw ? (JSON.parse(raw) as string[]) : []
       setDraftCollectionIds(ids.filter((id) => collections.some((c) => c.id === id)))
       setDraftWeb(localStorage.getItem(WEB_STORAGE_KEY) === '1')
+      setDraftAuto(localStorage.getItem(AUTO_STORAGE_KEY) === '1')
     } catch {
       // storage unavailable or corrupt
     }
   }, [collections])
 
   const webSearch = activeConversation ? Boolean(activeConversation.web_search) : draftWeb
+  const knowledgeAuto = activeConversation ? Boolean(activeConversation.knowledge_auto) : draftAuto
+
+  async function toggleAuto() {
+    const next = !knowledgeAuto
+    setKnowledgeError(null)
+    if (!activeConversation) {
+      setDraftAuto(next)
+      try {
+        localStorage.setItem(AUTO_STORAGE_KEY, next ? '1' : '0')
+      } catch {
+        // storage unavailable
+      }
+      return
+    }
+    onConversationUpdated({ ...activeConversation, knowledge_auto: next })
+    const { error } = await createClient()
+      .from('conversations')
+      .update({ knowledge_auto: next })
+      .eq('id', activeConversation.id)
+    if (error) {
+      onConversationUpdated({ ...activeConversation, knowledge_auto: !next })
+      setKnowledgeError(`Could not update knowledge mode: ${error.message}`)
+    }
+  }
 
   async function toggleWeb() {
     const next = !webSearch
@@ -164,6 +191,7 @@ export default function ChatApp({
     model,
     collectionIds: selectedIds,
     webSearch,
+    knowledgeAuto,
     onConversationCreated,
     onConversationUpdated,
   })
@@ -303,8 +331,10 @@ export default function ChatApp({
               userId={userId}
               collections={collections}
               selectedIds={selectedIds}
+              knowledgeAuto={knowledgeAuto}
               webSearch={webSearch}
               onToggle={toggleCollection}
+              onToggleAuto={toggleAuto}
               onToggleWeb={toggleWeb}
               disabled={chat.streaming}
             />

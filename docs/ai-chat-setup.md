@@ -107,7 +107,9 @@ curl -s -H "CF-Access-Client-Id: $ID" -H "CF-Access-Client-Secret: $SECRET" \
    for uploads; 50 MB per file, files live at `<user_id>/<document_id>/<name>`),
    then `0007_conversation_web_search.sql` (per-conversation web search flag),
    then `0008_user_settings.sql` (per-user settings such as the message color),
-   then `0009_memories.sql` (per-user memory + the automatic-memory toggle).
+   then `0009_memories.sql` (per-user memory + the automatic-memory toggle),
+   then `0010_knowledge_relevance.sql` (similarity in `match_chunks` for the relevance
+   gate, and the Auto knowledge mode flag).
 3. Confirm the manually created user still exists under **Authentication →
    Users** and that email signups remain disabled.
 4. The daily cron in `vercel.json` hits `/api/cron/keepalive`, which runs one
@@ -138,6 +140,7 @@ curl -s -H "CF-Access-Client-Id: $ID" -H "CF-Access-Client-Secret: $SECRET" \
    | `SEARXNG_URL` | enables the per-conversation "Web search" toggle via a self-hosted SearXNG, e.g. `https://search.pnwoods.com` (behind the same tunnel + Access token as Ollama; see "Web search" below) |
    | `BRAVE_SEARCH_API_KEY` | alternative search provider (prepaid, $5 free credit ≈ 1,000 queries/month); used only when `SEARXNG_URL` is unset or `SEARCH_PROVIDER=brave` |
    | `RAG_TOP_K` / `RAG_TOKEN_BUDGET` | excerpts per turn and their token budget (optional, defaults `8` / `2500`) |
+   | `RAG_MIN_SIMILARITY` | relevance gate for knowledge excerpts (optional, default `0.52`; unrelated chat scores ≤ 0.45, on-topic ≥ 0.59 with qwen3-embedding) |
    | `CRON_SECRET` | `openssl rand -hex 32` |
    | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | already set |
 

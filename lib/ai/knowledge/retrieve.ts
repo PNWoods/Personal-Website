@@ -17,6 +17,21 @@ export const RAG_TOP_K = envInt('RAG_TOP_K', 8)
 export const RAG_TOKEN_BUDGET = envInt('RAG_TOKEN_BUDGET', 2500)
 const SNIPPET_CHARS = 240
 
+/**
+ * Relevance gate, calibrated on qwen3-embedding:0.6b with the query prefix:
+ * unrelated chat ("testing", "hello", css questions vs. C2M docs) scores
+ * 0.22–0.45; on-topic questions score 0.59–0.79. A full-text match lowers
+ * the bar a little, and anything far below the best hit is dropped.
+ */
+export const RAG_MIN_SIMILARITY = envFloat('RAG_MIN_SIMILARITY', 0.52)
+const FTS_BONUS = 0.07
+const RELATIVE_BAND = 0.2
+
+function envFloat(name: string, fallback: number) {
+  const n = Number(process.env[name])
+  return Number.isFinite(n) && n > 0 && n < 1 ? n : fallback
+}
+
 interface MatchRow {
   chunk_id: string
   document_id: string
@@ -27,6 +42,27 @@ interface MatchRow {
   content: string
   token_count: number
   score: number
+  similarity: number | null
+  fts_hit: boolean | null
+}
+
+/** Greetings and acknowledgements never need the knowledge base. */
+export function isSmallTalk(text: string): boolean {
+  const t = text.trim()
+  if (t.length === 0) return true
+  return /^(hi|hello|hey|yo|thanks?|thank you|ok(ay)?|cool|nice|great|good|yes|no|sure|got it|test(ing)?|ping|hello there|good (morning|afternoon|evening))[\s.!?]*$/i.test(
+    t
+  )
+}
+
+function relevant(rows: MatchRow[]): MatchRow[] {
+  const sims = rows.map((r) => r.similarity ?? 0)
+  const best = Math.max(0, ...sims)
+  return rows.filter((r) => {
+    const sim = r.similarity ?? 0
+    const floor = r.fts_hit ? RAG_MIN_SIMILARITY - FTS_BONUS : RAG_MIN_SIMILARITY
+    return sim >= floor && sim >= best - RELATIVE_BAND
+  })
 }
 
 /** A numbered excerpt: what the model sees plus the citation shown to the user. */
@@ -56,7 +92,7 @@ export async function retrieveKnowledge(
   args: { query: string; collectionIds: string[]; tokenBudget?: number; signal?: AbortSignal }
 ): Promise<Excerpt[]> {
   const query = args.query.trim()
-  if (!query || args.collectionIds.length === 0) return []
+  if (!query || args.collectionIds.length === 0 || isSmallTalk(query)) return []
 
   const [embedding] = await embedTexts([query], { kind: 'query', signal: args.signal })
   const { data, error } = await db.rpc('match_chunks', {
@@ -66,7 +102,15 @@ export async function retrieveKnowledge(
     p_match_count: RAG_TOP_K * 3,
   })
   if (error) throw new Error(`match_chunks failed: ${error.message}`)
-  const rows = (data as MatchRow[] | null) ?? []
+  const all = (data as MatchRow[] | null) ?? []
+  // Older function versions (before migration 0010) return no similarity;
+  // treat every row as relevant then so nothing silently disappears.
+  const rows = all.some((r) => r.similarity !== undefined && r.similarity !== null)
+    ? relevant(all)
+    : all
+  console.log(
+    `[retrieve] candidates=${all.length} kept=${rows.length} best=${Math.max(0, ...all.map((r) => r.similarity ?? 0)).toFixed(2)}`
+  )
 
   const out: Excerpt[] = []
   let budget = args.tokenBudget ?? RAG_TOKEN_BUDGET
