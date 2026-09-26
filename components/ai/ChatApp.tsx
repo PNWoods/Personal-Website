@@ -100,9 +100,12 @@ export default function ChatApp({
   const onConversationCreated = useCallback(
     (conversation: Conversation) => {
       setConversations((prev) => [conversation, ...prev])
-      router.replace(`${pathname}?c=${conversation.id}`, { scroll: false })
+      // history.replaceState keeps useSearchParams in sync (Next 14.1+) without
+      // a server round-trip; router.replace re-fetches the page and could
+      // re-render the tree while the first reply is still streaming.
+      window.history.replaceState(null, '', `${pathname}?c=${conversation.id}`)
     },
-    [router, pathname]
+    [pathname]
   )
 
   const onConversationUpdated = useCallback((patch: Conversation) => {
