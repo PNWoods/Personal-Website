@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAiBase } from '@/components/ai/AiBaseProvider'
 
-type Mode = 'signin' | 'signup' | 'sent'
+type Mode = 'signin' | 'signup' | 'verify'
 
 const MIN_PASSWORD = 8
+/** Length of the code in the "Confirm signup" email template ({{ .Token }}). */
+const CODE_LENGTH = 6
 
 /** Supabase hides trigger errors behind this generic message. */
 function friendlyError(message: string): string {
@@ -22,6 +24,8 @@ export default function AiLoginPage() {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [invite, setInvite] = useState('')
+  const [code, setCode] = useState('')
+  const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -42,8 +46,49 @@ export default function AiLoginPage() {
   function switchMode(next: Mode) {
     setMode(next)
     setError(null)
+    setNotice(null)
     setConfirm('')
     setInvite('')
+    setCode('')
+  }
+
+  /** The 6-digit code from the confirmation email; works from any device. */
+  async function handleVerify(e: React.FormEvent) {
+    e.preventDefault()
+    const token = code.replace(/\D/g, '')
+    if (token.length !== CODE_LENGTH) {
+      setError(`Enter the ${CODE_LENGTH}-digit code from the email.`)
+      return
+    }
+    setLoading(true)
+    setError(null)
+    setNotice(null)
+    const { error } = await createClient().auth.verifyOtp({ email, token, type: 'signup' })
+    setLoading(false)
+    if (error) {
+      setError(
+        /expired|invalid/i.test(error.message)
+          ? 'That code is wrong or has expired. Check the newest email or resend.'
+          : error.message
+      )
+      return
+    }
+    router.push(href('/'))
+    router.refresh()
+  }
+
+  async function resendCode() {
+    if (loading) return
+    setLoading(true)
+    setError(null)
+    setNotice(null)
+    const { error } = await createClient().auth.resend({ type: 'signup', email })
+    setLoading(false)
+    if (error) {
+      setError(error.message)
+      return
+    }
+    setNotice('A new code is on its way. Only the newest one works.')
   }
 
   async function handleSignIn(e: React.FormEvent) {
@@ -98,7 +143,7 @@ export default function AiLoginPage() {
       setError('That email already has an account. Sign in instead.')
       return
     }
-    setMode('sent')
+    setMode('verify')
   }
 
   const inputClass =
@@ -107,19 +152,41 @@ export default function AiLoginPage() {
     'h-14 w-full rounded-xl bg-blue-600 text-lg font-semibold active:bg-blue-500 disabled:opacity-50'
   const linkClass = 'text-sm text-white/60 hover:text-white'
 
-  if (mode === 'sent') {
+  if (mode === 'verify') {
     return (
       <div className="flex h-full items-center justify-center px-4">
-        <div className="w-full max-w-sm space-y-4 text-center">
-          <h1 className="text-2xl font-bold">Check your email</h1>
-          <p className="text-sm text-white/70">
-            We sent a confirmation link to <span className="text-white">{email}</span>. Open it
-            on this device to finish creating your account.
+        <form onSubmit={handleVerify} className="w-full max-w-sm space-y-4">
+          <h1 className="text-center text-2xl font-bold">Check your email</h1>
+          <p className="text-center text-sm text-white/70">
+            We sent a {CODE_LENGTH}-digit code to <span className="text-white">{email}</span>.
+            Enter it here from any device.
           </p>
-          <button type="button" onClick={() => switchMode('signin')} className={linkClass}>
-            Back to sign in
+          <input
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="[0-9]*"
+            placeholder="Confirmation code"
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, CODE_LENGTH))}
+            className={`${inputClass} text-center tracking-[0.4em]`}
+            autoFocus
+            required
+          />
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          {notice && !error && <p className="text-sm text-white/60">{notice}</p>}
+          <button type="submit" disabled={loading} className={buttonClass}>
+            {loading ? 'Checking…' : 'Confirm'}
           </button>
-        </div>
+          <div className="flex items-center justify-between">
+            <button type="button" onClick={resendCode} disabled={loading} className={linkClass}>
+              Resend code
+            </button>
+            <button type="button" onClick={() => switchMode('signin')} className={linkClass}>
+              Back to sign in
+            </button>
+          </div>
+        </form>
       </div>
     )
   }
@@ -170,7 +237,7 @@ export default function AiLoginPage() {
               className={inputClass}
             />
             <p className="text-xs text-white/40">
-              Ask Patrick for the invite code. You&apos;ll get a confirmation email after this step.
+              Ask Patrick for the invite code. You&apos;ll get a confirmation code by email after this step.
             </p>
           </>
         )}

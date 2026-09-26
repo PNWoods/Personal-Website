@@ -115,9 +115,24 @@ curl -s -H "CF-Access-Client-Id: $ID" -H "CF-Access-Client-Secret: $SECRET" \
 3. **Sign-up.** The login page has a "Create an account" form. To make it work:
    - **Authentication → Sign In / Providers**: turn on **Allow new users to sign up**
      and keep the **Email** provider enabled (leave **Confirm email** on so
-     addresses are verified; the link lands on `/auth/confirm`).
+     addresses are verified).
+   - **Authentication → Email Templates → Confirm signup**: put the 6-digit code
+     in the body so people can confirm from any device (the default template
+     only has a link, which must be opened in the browser that started the
+     sign-up). For example:
+
+     ```html
+     <h2>Confirm your account</h2>
+     <p>Your code is <strong>{{ .Token }}</strong>. Enter it on the sign-up page.</p>
+     <p>Or open this link on the same device: <a href="{{ .ConfirmationURL }}">confirm</a>.</p>
+     ```
+
+     The sign-up page verifies the code with `verifyOtp(type: 'signup')`; the
+     link still works too (it lands on `/auth/confirm`). Codes expire after
+     one hour (Authentication → Sign In / Providers → Email → OTP expiry).
    - **Authentication → URL Configuration**: Site URL `https://ai.pnwoods.com`,
-     and add `https://ai.pnwoods.com/auth/confirm` to **Redirect URLs**.
+     and add `https://ai.pnwoods.com/auth/confirm` to **Redirect URLs** (only
+     needed for the link fallback).
    - Set the invite code (the migration inserts the placeholder `CHANGE-ME`):
 
      ```sql
