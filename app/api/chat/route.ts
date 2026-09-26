@@ -122,10 +122,15 @@ export async function POST(request: Request) {
         controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'))
       }
 
+      let chunks = 0
+      let finished = false
       try {
         for await (const chunk of ndjsonLines<OllamaChatChunk>(upstreamBody)) {
+          chunks++
           if (chunk.error) {
+            console.error('[api/chat] ollama error chunk', chunk.error)
             send({ type: 'error', message: chunk.error })
+            finished = true
             break
           }
           const content = chunk.message?.content
@@ -134,7 +139,11 @@ export async function POST(request: Request) {
             send({ type: 'delta', content })
           }
           if (chunk.done) {
+            finished = true
             const messageId = await persist()
+            console.log(
+              `[api/chat] done model=${model} chunks=${chunks} chars=${full.length} reason=${chunk.done_reason ?? '-'} eval=${chunk.eval_count ?? '-'}`
+            )
             send({
               type: 'done',
               messageId,
@@ -144,9 +153,27 @@ export async function POST(request: Request) {
             break
           }
         }
+        if (!finished && !closed) {
+          // Upstream ended without a done chunk and nobody cancelled: surface it.
+          console.error(
+            `[api/chat] upstream ended early model=${model} chunks=${chunks} chars=${full.length}`
+          )
+          send({
+            type: 'error',
+            message: full
+              ? 'Ollama stopped before finishing the reply.'
+              : 'Ollama returned an empty reply.',
+          })
+        }
       } catch (err) {
-        if ((err as Error)?.name !== 'AbortError') {
-          console.error('[api/chat] stream error', err)
+        const aborted = (err as Error)?.name === 'AbortError'
+        if (aborted && closed) {
+          // Client disconnected or pressed Stop: expected.
+        } else {
+          console.error(
+            `[api/chat] stream error model=${model} chunks=${chunks} chars=${full.length}`,
+            err
+          )
           try {
             send({
               type: 'error',
@@ -176,9 +203,10 @@ export async function POST(request: Request) {
     },
   })
 
-  // request.signal is unreliable in Next 14 route handlers; cancel() above is
-  // the primary path, this is belt and braces.
-  request.signal?.addEventListener('abort', () => upstreamAbort.abort())
+  // Deliberately NOT wiring request.signal to upstreamAbort: in Next 14 on
+  // Vercel it can fire once the handler returns, which killed the Ollama
+  // stream mid-reply and produced an empty assistant message with no error.
+  // cancel() above (client disconnect / Stop button) is the only abort path.
 
   return new Response(stream, {
     headers: {
