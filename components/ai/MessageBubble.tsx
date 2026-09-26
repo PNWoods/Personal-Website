@@ -42,15 +42,16 @@ export default function MessageBubble({
   }
 
   function handleCite(n: number) {
+    // The pill itself opens the source in a new tab; here we just mark the
+    // matching row in the Sources panel.
     setActiveN(n)
-    document.getElementById(`source-${n}`)?.scrollIntoView({ block: 'nearest' })
   }
 
   return (
     <div className="flex justify-start">
       <div className="w-full max-w-full">
         {message.content ? (
-          <Markdown content={message.content} sources={sources} onCite={handleCite} />
+          <Markdown content={message.content} sources={sources} onCite={handleCite} accent={accent} />
         ) : message.streaming ? (
           <span className="text-white/50">{message.status ?? 'Thinking…'}</span>
         ) : null}
@@ -61,7 +62,12 @@ export default function MessageBubble({
           <p className="mt-2 text-sm text-red-400">{message.error}</p>
         )}
         {sources && sources.length > 0 && (
-          <SourcesList sources={sources} citedNumbers={citedNumbers} activeN={activeN} />
+          <SourcesList
+            sources={sources}
+            citedNumbers={citedNumbers}
+            activeN={activeN}
+            accent={accent}
+          />
         )}
         {sources && sources.length === 0 && !message.streaming && (
           <p className="mt-2 text-xs text-white/35">No matching knowledge found.</p>

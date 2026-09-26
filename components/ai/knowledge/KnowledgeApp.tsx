@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { ArrowLeft, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { storagePath } from '@/lib/ai/knowledge/files'
+import { DEFAULT_ACCENT, type AccentColor } from '@/lib/ai/theme'
 import type { Collection, IngestResponse, KnowledgeDocument } from '@/lib/ai/types'
 import { useAiBase } from '../AiBaseProvider'
 import AddDocument from './AddDocument'
@@ -19,14 +20,18 @@ export default function KnowledgeApp({
   userId,
   initialCollections,
   initialDocuments,
+  accent = DEFAULT_ACCENT,
 }: {
   userId: string
   initialCollections: Collection[]
   initialDocuments: KnowledgeDocument[]
+  accent?: AccentColor
 }) {
   const supabase = useMemo(() => createClient(), [])
   const { href } = useAiBase()
   const searchParams = useSearchParams()
+  /** Chunk to scroll to when arriving from a citation (?doc=…&chunk=…). */
+  const highlightChunkId = searchParams.get('chunk')
 
   const [collections, setCollections] = useState(initialCollections)
   const [documents, setDocuments] = useState(initialDocuments)
@@ -353,6 +358,8 @@ export default function KnowledgeApp({
                 isOwner={detail.user_id === userId}
                 onClose={() => setDetailId(null)}
                 onSaveNote={saveNote}
+                highlightChunkId={detail.id === deepLinkDoc ? highlightChunkId : null}
+                accent={accent}
               />
             </div>
           )}
@@ -364,6 +371,8 @@ export default function KnowledgeApp({
               isOwner={detail.user_id === userId}
               onClose={() => setDetailId(null)}
               onSaveNote={saveNote}
+              highlightChunkId={detail.id === deepLinkDoc ? highlightChunkId : null}
+              accent={accent}
             />
           </div>
         )}

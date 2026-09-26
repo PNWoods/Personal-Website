@@ -4,7 +4,10 @@ import { useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Check, Copy } from 'lucide-react'
+import { citationTarget } from '@/lib/ai/citations'
+import { ACCENTS, DEFAULT_ACCENT, type AccentColor } from '@/lib/ai/theme'
 import type { Source } from '@/lib/ai/types'
+import { useAiBase } from './AiBaseProvider'
 import remarkCitations from './remarkCitations'
 
 function CodeBlock({
@@ -50,17 +53,21 @@ export default function Markdown({
   content,
   sources,
   onCite,
+  accent = DEFAULT_ACCENT,
 }: {
   content: string
-  /** When present, [n] markers in the text become clickable citations. */
+  /** When present, [n] markers in the text become clickable citation pills. */
   sources?: Source[]
   onCite?: (n: number) => void
+  accent?: AccentColor
 }) {
+  const { href } = useAiBase()
   const count = sources?.length ?? 0
   const plugins = useMemo(
     () => (count > 0 ? [remarkGfm, remarkCitations(count)] : [remarkGfm]),
     [count]
   )
+  const pill = ACCENTS[accent].pill
 
   return (
     <div className="prose prose-invert prose-sm max-w-none break-words md:prose-base prose-pre:bg-transparent prose-pre:p-0">
@@ -87,30 +94,28 @@ export default function Markdown({
             }
             return <CodeBlock language={match?.[1] ?? null} code={text} />
           },
-          a({ node: _node, children, href, ...props }) {
-            if (href?.startsWith('cite:')) {
-              const n = Number(href.slice(5))
+          a({ node: _node, children, href: linkHref, ...props }) {
+            if (linkHref?.startsWith('cite:')) {
+              const n = Number(linkHref.slice(5))
               const src = sources?.[n - 1]
-              const title = src
-                ? src.section
-                  ? `${src.title} › ${src.section}`
-                  : src.title
-                : `Source ${n}`
+              if (!src) return <>[{n}]</>
+              const target = citationTarget(src, href)
+              const title = src.section ? `${src.title} › ${src.section}` : src.title
               return (
-                <sup>
-                  <button
-                    type="button"
-                    onClick={() => onCite?.(n)}
-                    title={title}
-                    className="not-prose mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded bg-blue-500/25 px-1 text-[10px] font-medium text-blue-200 hover:bg-blue-500/50"
-                  >
-                    {n}
-                  </button>
-                </sup>
+                <a
+                  href={target.url}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  onClick={() => onCite?.(n)}
+                  title={`${title}\n${target.external ? 'Opens the page at the cited passage' : 'Opens the note at the cited section'}`}
+                  className={`not-prose mx-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full border px-1.5 align-text-top text-[11px] font-medium no-underline transition ${pill}`}
+                >
+                  {n}
+                </a>
               )
             }
             return (
-              <a {...props} href={href} target="_blank" rel="noreferrer noopener">
+              <a {...props} href={linkHref} target="_blank" rel="noreferrer noopener">
                 {children}
               </a>
             )
