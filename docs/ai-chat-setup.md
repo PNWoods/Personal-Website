@@ -165,7 +165,7 @@ curl -s -H "CF-Access-Client-Id: $ID" -H "CF-Access-Client-Secret: $SECRET" \
    | `CF_ACCESS_CLIENT_ID` | from step 3 |
    | `CF_ACCESS_CLIENT_SECRET` | from step 3 |
    | `AI_HOST` | `ai.pnwoods.com` (optional, this is the default) |
-   | `OLLAMA_NUM_CTX` | context window requested per request (optional, default `32768`) |
+   | `OLLAMA_NUM_CTX` | context window requested per request (optional, default `32768`). Every request from this app (chat, compaction, memory extraction, image transcription) uses this one value on purpose: Ollama reloads the model (~20 s) whenever a request asks for a *different* `num_ctx`, larger or smaller. Any other client of the same Ollama (e.g. Roo Code / Cline in VS Code) should be set to the same number, or each switch between clients pays that reload. Measured on the RTX 4080 Laptop host with qwen3.6:35b-a3b-coding: 32K ≈ 73 tok/s, 64K ≈ 66 tok/s, 128K ≈ 65 tok/s. |
    | `OLLAMA_EMBED_MODEL` | embedding model for knowledge bases (optional, default `qwen3-embedding:0.6b`, must be 1024-dim) |
    | `OLLAMA_VISION_MODEL` | model that transcribes uploaded images (optional, default `qwen3.6:35b-a3b-coding`) |
    | `SEARXNG_URL` | enables the per-conversation "Web search" toggle via a self-hosted SearXNG, e.g. `https://search.pnwoods.com` (behind the same tunnel + Access token as Ollama; see "Web search" below) |

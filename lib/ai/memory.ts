@@ -124,7 +124,9 @@ export async function extractMemories(
       think: false,
       keep_alive: '30m',
       format: 'json',
-      options: { num_ctx: Math.min(NUM_CTX, 8192), temperature: 0, num_predict: 300 },
+      // Same num_ctx as the chat: Ollama reloads the model (~20 s) whenever a
+      // request asks for a different context size, even a smaller one.
+      options: { num_ctx: NUM_CTX, temperature: 0, num_predict: 300 },
       messages: [
         { role: 'system', content: EXTRACT_SYSTEM },
         { role: 'user', content: user },
