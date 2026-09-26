@@ -162,6 +162,11 @@ Linux box on the LAN (the Proxmox host is ideal) and is exposed through the
 same Cloudflare tunnel and Access service token as Ollama, so Vercel reaches
 it with the `CF_ACCESS_*` headers it already has.
 
+Current deployment (2026-09-26): unprivileged LXC `205` (`searxng`, Debian 12,
+Docker) on the Proxmox host `pve`, static IP `192.168.1.105`, config in
+`/opt/searxng/config/settings.yml`, container `searxng` restarts on boot.
+Tunnel route `search.pnwoods.com` → `http://192.168.1.105:8080`.
+
 1. On the Linux host (Docker):
 
    ```bash
