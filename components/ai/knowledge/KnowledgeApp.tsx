@@ -16,6 +16,20 @@ import { useIngest } from './useIngest'
 
 const RESUMABLE = new Set(['pending', 'extracting', 'embedding'])
 
+/**
+ * Still has work the server can pick up: mid-flight, or failed during the
+ * embedding phase with its chunks intact (the server resumes those).
+ */
+function canResume(d: KnowledgeDocument): boolean {
+  if (RESUMABLE.has(d.status)) return true
+  return (
+    d.status === 'error' &&
+    d.chunk_count > 0 &&
+    d.embedded_count < d.chunk_count &&
+    /^Failed to (store|read) (embeddings|chunks)|embed/i.test(d.error ?? '')
+  )
+}
+
 export default function KnowledgeApp({
   userId,
   initialCollections,
@@ -70,7 +84,7 @@ export default function KnowledgeApp({
   // Resume anything left mid-flight by a closed tab.
   useEffect(() => {
     for (const d of initialDocuments) {
-      if (d.user_id === userId && RESUMABLE.has(d.status)) ingest(d.id)
+      if (d.user_id === userId && canResume(d)) ingest(d.id)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -227,6 +241,12 @@ export default function KnowledgeApp({
   }
 
   async function reindex(doc: KnowledgeDocument) {
+    // A document that died mid-embedding keeps its chunks: just continue.
+    if (doc.status === 'error' && canResume(doc)) {
+      patchDocument(doc.id, { status: 'embedding', error: null })
+      ingest(doc.id)
+      return
+    }
     const { error } = await supabase
       .from('documents')
       .update({ status: 'pending', error: null })
