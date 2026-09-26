@@ -170,7 +170,7 @@ curl -s -H "CF-Access-Client-Id: $ID" -H "CF-Access-Client-Secret: $SECRET" \
    | `OLLAMA_VISION_MODEL` | model that transcribes uploaded images (optional, default `qwen3.6:35b-a3b-coding`) |
    | `SEARXNG_URL` | enables the per-conversation "Web search" toggle via a self-hosted SearXNG, e.g. `https://search.pnwoods.com` (behind the same tunnel + Access token as Ollama; see "Web search" below) |
    | `BRAVE_SEARCH_API_KEY` | alternative search provider (prepaid, $5 free credit ≈ 1,000 queries/month); used only when `SEARXNG_URL` is unset or `SEARCH_PROVIDER=brave` |
-   | `RAG_TOP_K` / `RAG_TOKEN_BUDGET` | excerpts per turn and their token budget (optional, defaults `8` / `2500`) |
+   | `RAG_TOP_K` / `RAG_TOKEN_BUDGET` | excerpts per turn and their token budget (optional, defaults `12` / `4500`, sized for the 128K window) |
    | `RAG_MIN_SIMILARITY` | relevance gate for knowledge excerpts (optional, default `0.52`; unrelated chat scores ≤ 0.45, on-topic ≥ 0.59 with qwen3-embedding) |
    | `CRON_SECRET` | `openssl rand -hex 32` |
    | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | already set |

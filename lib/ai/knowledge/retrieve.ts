@@ -12,9 +12,12 @@ function envInt(name: string, fallback: number) {
 }
 
 /** Max knowledge-base excerpts handed to the model per turn. */
-export const RAG_TOP_K = envInt('RAG_TOP_K', 8)
-/** Token budget for all excerpts combined (out of the 32K window). */
-export const RAG_TOKEN_BUDGET = envInt('RAG_TOKEN_BUDGET', 2500)
+export const RAG_TOP_K = envInt('RAG_TOP_K', 12)
+/**
+ * Token budget for all excerpts combined. Sized for the 128K window: a
+ * schema question often needs the table, its lookups and a neighbour or two.
+ */
+export const RAG_TOKEN_BUDGET = envInt('RAG_TOKEN_BUDGET', 4500)
 const SNIPPET_CHARS = 240
 
 /**
