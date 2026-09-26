@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUp, Square } from 'lucide-react'
+import { ACCENTS, DEFAULT_ACCENT, type AccentColor } from '@/lib/ai/theme'
 
 const MAX_HEIGHT = 200
 
@@ -10,12 +11,15 @@ export default function Composer({
   streaming,
   onSend,
   onStop,
+  accent = DEFAULT_ACCENT,
 }: {
   disabled: boolean
   streaming: boolean
   onSend: (text: string) => void
   onStop: () => void
+  accent?: AccentColor
 }) {
+  const a = ACCENTS[accent]
   const [text, setText] = useState('')
   const ref = useRef<HTMLTextAreaElement>(null)
 
@@ -49,7 +53,7 @@ export default function Composer({
           e.preventDefault()
           submit()
         }}
-        className="mx-auto flex w-full max-w-3xl items-end gap-2 rounded-2xl border border-white/15 bg-white/5 p-2 focus-within:border-blue-500"
+        className={`mx-auto flex w-full max-w-3xl items-end gap-2 rounded-2xl border border-white/15 bg-white/5 p-2 ${a.ring}`}
       >
         <textarea
           ref={ref}
@@ -74,7 +78,7 @@ export default function Composer({
           <button
             type="submit"
             disabled={!canSend}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white active:bg-blue-500 disabled:opacity-30"
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white disabled:opacity-30 ${a.button}`}
             aria-label="Send"
           >
             <ArrowUp size={18} />
