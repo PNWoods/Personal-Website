@@ -73,7 +73,10 @@ export async function POST(request: Request) {
       signal: upstreamAbort.signal,
       // think: false keeps thinking-capable models (qwen3.6) from spending the
       // whole budget on hidden reasoning that this stream does not surface.
-      json: { model, messages, stream: true, keep_alive: '30m', think: false },
+      // keep_alive: -1 pins the model in memory on the host so there is no
+      // ~20s cold load after idle. A per-request value overrides the host's
+      // OLLAMA_KEEP_ALIVE, so this is the setting that actually matters.
+      json: { model, messages, stream: true, keep_alive: -1, think: false },
     })
   } catch (err) {
     if (err instanceof OllamaError) {
