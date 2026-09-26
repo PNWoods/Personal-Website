@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { ACCENTS, DEFAULT_ACCENT, type AccentColor } from '@/lib/ai/theme'
 import type { KnowledgeDocument } from '@/lib/ai/types'
 
 interface ChunkRow {
@@ -19,11 +20,16 @@ export default function DocumentDetail({
   isOwner,
   onClose,
   onSaveNote,
+  highlightChunkId = null,
+  accent = DEFAULT_ACCENT,
 }: {
   doc: KnowledgeDocument
   isOwner: boolean
   onClose: () => void
   onSaveNote: (doc: KnowledgeDocument, title: string, content: string) => Promise<void>
+  /** Chunk to scroll to and highlight (from a citation link). */
+  highlightChunkId?: string | null
+  accent?: AccentColor
 }) {
   const supabase = useMemo(() => createClient(), [])
   const [chunks, setChunks] = useState<ChunkRow[] | null>(null)
@@ -31,6 +37,8 @@ export default function DocumentDetail({
   const [title, setTitle] = useState(doc.title)
   const [content, setContent] = useState(doc.content ?? '')
   const [saving, setSaving] = useState(false)
+  const scrolledTo = useRef<string | null>(null)
+  const a = ACCENTS[accent]
 
   useEffect(() => {
     setTitle(doc.title)
@@ -46,7 +54,7 @@ export default function DocumentDetail({
       .select('id, idx, section, content, token_count')
       .eq('document_id', doc.id)
       .order('idx', { ascending: true })
-      .limit(50)
+      .limit(500)
       .then(({ data }) => {
         if (!cancelled) setChunks((data as ChunkRow[] | null) ?? [])
       })
@@ -54,6 +62,16 @@ export default function DocumentDetail({
       cancelled = true
     }
   }, [supabase, doc.id, doc.status, doc.chunk_count])
+
+  // Once the chunks render, bring the cited one into view (once per target).
+  useEffect(() => {
+    if (!highlightChunkId || !chunks || scrolledTo.current === highlightChunkId) return
+    const el = document.getElementById(`chunk-${highlightChunkId}`)
+    if (el) {
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      scrolledTo.current = highlightChunkId
+    }
+  }, [highlightChunkId, chunks])
 
   async function save() {
     if (saving) return
@@ -118,13 +136,13 @@ export default function DocumentDetail({
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="h-9 w-full rounded-lg border border-white/15 bg-white/5 px-3 text-sm outline-none focus:border-blue-500"
+              className="h-9 w-full rounded-lg border border-white/15 bg-white/5 px-3 text-sm outline-none focus:border-white/40"
             />
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={18}
-              className="w-full resize-y rounded-lg border border-white/15 bg-white/5 px-3 py-2 font-mono text-sm leading-relaxed outline-none focus:border-blue-500"
+              className="w-full resize-y rounded-lg border border-white/15 bg-white/5 px-3 py-2 font-mono text-sm leading-relaxed outline-none focus:border-white/40"
             />
             <div className="flex justify-end gap-2">
               <button
@@ -138,7 +156,7 @@ export default function DocumentDetail({
                 type="button"
                 onClick={save}
                 disabled={saving || !content.trim()}
-                className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white disabled:opacity-40"
+                className={`rounded-lg px-3 py-1.5 text-sm text-white disabled:opacity-40 ${a.button}`}
               >
                 {saving ? 'Saving…' : 'Save and re-index'}
               </button>
@@ -147,7 +165,7 @@ export default function DocumentDetail({
         ) : (
           <>
             <p className="mb-2 text-xs uppercase tracking-wide text-white/35">
-              Chunks{chunks && chunks.length >= 50 ? ' (first 50)' : ''}
+              Chunks{chunks && chunks.length >= 500 ? ' (first 500)' : ''}
             </p>
             {chunks === null ? (
               <p className="text-white/40">Loading…</p>
@@ -155,18 +173,34 @@ export default function DocumentDetail({
               <p className="text-white/40">No chunks yet.</p>
             ) : (
               <ol className="space-y-2">
-                {chunks.map((c) => (
-                  <li key={c.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
-                    <div className="mb-1 flex items-center gap-2 text-[11px] text-white/45">
-                      <span className="rounded bg-white/10 px-1.5 tabular-nums">{c.idx + 1}</span>
-                      <span className="min-w-0 flex-1 truncate">{c.section ?? '—'}</span>
-                      <span className="tabular-nums">{c.token_count}t</span>
-                    </div>
-                    <pre className="whitespace-pre-wrap break-words font-sans text-xs leading-relaxed text-white/75">
-                      {c.content}
-                    </pre>
-                  </li>
-                ))}
+                {chunks.map((c) => {
+                  const cited = c.id === highlightChunkId
+                  return (
+                    <li
+                      key={c.id}
+                      id={`chunk-${c.id}`}
+                      className={`rounded-lg border p-2 ${
+                        cited ? `border-transparent ring-2 ${a.highlight}` : 'border-white/10 bg-white/[0.03]'
+                      }`}
+                    >
+                      <div className="mb-1 flex items-center gap-2 text-[11px] text-white/45">
+                        <span
+                          className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full border px-1.5 tabular-nums ${
+                            cited ? a.pill : 'border-white/10 bg-white/10'
+                          }`}
+                        >
+                          {c.idx + 1}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate">{c.section ?? '—'}</span>
+                        {cited && <span className={a.text}>cited</span>}
+                        <span className="tabular-nums">{c.token_count}t</span>
+                      </div>
+                      <pre className="whitespace-pre-wrap break-words font-sans text-xs leading-relaxed text-white/75">
+                        {c.content}
+                      </pre>
+                    </li>
+                  )
+                })}
               </ol>
             )}
           </>

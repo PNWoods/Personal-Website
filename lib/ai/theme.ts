@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Accent colors for the chat app, matching the skills-page palette in
  * components/SkillTag.tsx. Class strings are spelled out in full so Tailwind
  * can see them at build time.
@@ -33,6 +33,10 @@ export interface AccentClasses {
   swatch: string
   /** Text tint for "selected" states */
   text: string
+  /** Inline citation pill inside a reply */
+  pill: string
+  /** Highlight ring for the cited chunk / source row */
+  highlight: string
 }
 
 export const ACCENTS: Record<AccentColor, AccentClasses> = {
@@ -43,6 +47,8 @@ export const ACCENTS: Record<AccentColor, AccentClasses> = {
     chip: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
     swatch: 'bg-blue-500',
     text: 'text-blue-300',
+    pill: 'bg-blue-500/25 text-blue-200 border-blue-400/40 hover:bg-blue-500/50',
+    highlight: 'ring-blue-400/70 bg-blue-500/10',
   },
   green: {
     bubble: 'border-green-500/30 bg-green-500/20',
@@ -51,6 +57,8 @@ export const ACCENTS: Record<AccentColor, AccentClasses> = {
     chip: 'bg-green-500/20 text-green-300 border-green-500/30',
     swatch: 'bg-green-500',
     text: 'text-green-300',
+    pill: 'bg-green-500/25 text-green-200 border-green-400/40 hover:bg-green-500/50',
+    highlight: 'ring-green-400/70 bg-green-500/10',
   },
   purple: {
     bubble: 'border-purple-500/30 bg-purple-500/20',
@@ -59,6 +67,8 @@ export const ACCENTS: Record<AccentColor, AccentClasses> = {
     chip: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
     swatch: 'bg-purple-500',
     text: 'text-purple-300',
+    pill: 'bg-purple-500/25 text-purple-200 border-purple-400/40 hover:bg-purple-500/50',
+    highlight: 'ring-purple-400/70 bg-purple-500/10',
   },
   orange: {
     bubble: 'border-orange-500/30 bg-orange-500/20',
@@ -67,6 +77,8 @@ export const ACCENTS: Record<AccentColor, AccentClasses> = {
     chip: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
     swatch: 'bg-orange-500',
     text: 'text-orange-300',
+    pill: 'bg-orange-500/25 text-orange-200 border-orange-400/40 hover:bg-orange-500/50',
+    highlight: 'ring-orange-400/70 bg-orange-500/10',
   },
   cyan: {
     bubble: 'border-cyan-500/30 bg-cyan-500/20',
@@ -75,6 +87,8 @@ export const ACCENTS: Record<AccentColor, AccentClasses> = {
     chip: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
     swatch: 'bg-cyan-500',
     text: 'text-cyan-300',
+    pill: 'bg-cyan-500/25 text-cyan-200 border-cyan-400/40 hover:bg-cyan-500/50',
+    highlight: 'ring-cyan-400/70 bg-cyan-500/10',
   },
   pink: {
     bubble: 'border-pink-500/30 bg-pink-500/20',
@@ -83,6 +97,8 @@ export const ACCENTS: Record<AccentColor, AccentClasses> = {
     chip: 'bg-pink-500/20 text-pink-300 border-pink-500/30',
     swatch: 'bg-pink-500',
     text: 'text-pink-300',
+    pill: 'bg-pink-500/25 text-pink-200 border-pink-400/40 hover:bg-pink-500/50',
+    highlight: 'ring-pink-400/70 bg-pink-500/10',
   },
   yellow: {
     bubble: 'border-yellow-500/30 bg-yellow-500/20',
@@ -91,6 +107,8 @@ export const ACCENTS: Record<AccentColor, AccentClasses> = {
     chip: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
     swatch: 'bg-yellow-500',
     text: 'text-yellow-300',
+    pill: 'bg-yellow-500/25 text-yellow-200 border-yellow-400/40 hover:bg-yellow-500/50',
+    highlight: 'ring-yellow-400/70 bg-yellow-500/10',
   },
   red: {
     bubble: 'border-red-500/30 bg-red-500/20',
@@ -99,6 +117,8 @@ export const ACCENTS: Record<AccentColor, AccentClasses> = {
     chip: 'bg-red-500/20 text-red-300 border-red-500/30',
     swatch: 'bg-red-500',
     text: 'text-red-300',
+    pill: 'bg-red-500/25 text-red-200 border-red-400/40 hover:bg-red-500/50',
+    highlight: 'ring-red-400/70 bg-red-500/10',
   },
   gray: {
     bubble: 'border-gray-500/30 bg-gray-500/20',
@@ -107,6 +127,8 @@ export const ACCENTS: Record<AccentColor, AccentClasses> = {
     chip: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
     swatch: 'bg-gray-500',
     text: 'text-gray-300',
+    pill: 'bg-gray-500/25 text-gray-200 border-gray-400/40 hover:bg-gray-500/50',
+    highlight: 'ring-gray-400/70 bg-gray-500/10',
   },
 }
 
