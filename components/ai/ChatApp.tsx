@@ -17,6 +17,7 @@ import type { OllamaStatus } from './ModelSelect'
 const MODEL_STORAGE_KEY = 'ai-chat-model'
 /** Collections picked before a conversation exists; remembered for the next new chat. */
 const COLLECTIONS_STORAGE_KEY = 'ai-chat-collections'
+const WEB_STORAGE_KEY = 'ai-chat-web'
 // First match wins when nothing is stored. Benchmarked on the RTX 4080 Laptop
 // host (12 GB VRAM + 64 GB RAM): qwen3.6 MoE ~72 tok/s, the others ~44 tok/s.
 const PREFERRED_MODELS = [
@@ -56,15 +57,42 @@ export default function ChatApp({
   // Knowledge selection for a chat that has no row yet lives in local state
   // (and localStorage so the choice sticks for the next new chat).
   const [draftCollectionIds, setDraftCollectionIds] = useState<string[]>([])
+  const [draftWeb, setDraftWeb] = useState(false)
   useEffect(() => {
     try {
       const raw = localStorage.getItem(COLLECTIONS_STORAGE_KEY)
       const ids = raw ? (JSON.parse(raw) as string[]) : []
       setDraftCollectionIds(ids.filter((id) => collections.some((c) => c.id === id)))
+      setDraftWeb(localStorage.getItem(WEB_STORAGE_KEY) === '1')
     } catch {
       // storage unavailable or corrupt
     }
   }, [collections])
+
+  const webSearch = activeConversation ? Boolean(activeConversation.web_search) : draftWeb
+
+  async function toggleWeb() {
+    const next = !webSearch
+    setKnowledgeError(null)
+    if (!activeConversation) {
+      setDraftWeb(next)
+      try {
+        localStorage.setItem(WEB_STORAGE_KEY, next ? '1' : '0')
+      } catch {
+        // storage unavailable
+      }
+      return
+    }
+    onConversationUpdated({ ...activeConversation, web_search: next })
+    const { error } = await createClient()
+      .from('conversations')
+      .update({ web_search: next })
+      .eq('id', activeConversation.id)
+    if (error) {
+      onConversationUpdated({ ...activeConversation, web_search: !next })
+      setKnowledgeError(`Could not update web search: ${error.message}`)
+    }
+  }
 
   const visibleIds = (ids: string[]) => ids.filter((id) => collections.some((c) => c.id === id))
   const selectedIds = activeConversation
@@ -118,6 +146,7 @@ export default function ChatApp({
     userId,
     model,
     collectionIds: selectedIds,
+    webSearch,
     onConversationCreated,
     onConversationUpdated,
   })
@@ -257,7 +286,9 @@ export default function ChatApp({
               userId={userId}
               collections={collections}
               selectedIds={selectedIds}
+              webSearch={webSearch}
               onToggle={toggleCollection}
+              onToggleWeb={toggleWeb}
               disabled={chat.streaming}
             />
             {chat.usage && <ContextMeter usage={chat.usage} />}

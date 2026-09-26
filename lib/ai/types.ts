@@ -13,6 +13,8 @@ export interface Conversation {
   summary_message_count: number
   /** Knowledge collections consulted for this conversation (migration 0005). */
   collection_ids: string[]
+  /** Also run a web search for every message (migration 0007). */
+  web_search: boolean
 }
 
 export interface Message {
@@ -60,7 +62,8 @@ export interface ContextUsage {
 // Knowledge bases (migration 0005)
 // ---------------------------------------------------------------------------
 
-export type SourceType = 'file' | 'url' | 'note'
+/** 'web' sources come from an on-demand search and are not stored as documents. */
+export type SourceType = 'file' | 'url' | 'note' | 'web'
 export type DocumentStatus =
   | 'uploading'
   | 'pending'

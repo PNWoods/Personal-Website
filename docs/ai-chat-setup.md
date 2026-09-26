@@ -104,7 +104,8 @@ curl -s -H "CF-Access-Client-Id: $ID" -H "CF-Access-Client-Secret: $SECRET" \
    then `0004_conversation_summary.sql` (compaction columns), then
    `0005_knowledge_schema.sql` (pgvector, knowledge-base tables, `match_chunks`),
    then `0006_knowledge_storage.sql` (private `knowledge` bucket + object policies
-   for uploads; 50 MB per file, files live at `<user_id>/<document_id>/<name>`).
+   for uploads; 50 MB per file, files live at `<user_id>/<document_id>/<name>`),
+   then `0007_conversation_web_search.sql` (per-conversation web search flag).
 3. Confirm the manually created user still exists under **Authentication →
    Users** and that email signups remain disabled.
 4. The daily cron in `vercel.json` hits `/api/cron/keepalive`, which runs one
@@ -132,6 +133,7 @@ curl -s -H "CF-Access-Client-Id: $ID" -H "CF-Access-Client-Secret: $SECRET" \
    | `OLLAMA_NUM_CTX` | context window requested per request (optional, default `32768`) |
    | `OLLAMA_EMBED_MODEL` | embedding model for knowledge bases (optional, default `qwen3-embedding:0.6b`, must be 1024-dim) |
    | `OLLAMA_VISION_MODEL` | model that transcribes uploaded images (optional, default `qwen3.6:35b-a3b-coding`) |
+   | `BRAVE_SEARCH_API_KEY` | enables the per-conversation "Web search" toggle (optional; free tier is 2,000 queries/month at brave.com/search/api) |
    | `RAG_TOP_K` / `RAG_TOKEN_BUDGET` | excerpts per turn and their token budget (optional, defaults `8` / `2500`) |
    | `CRON_SECRET` | `openssl rand -hex 32` |
    | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | already set |

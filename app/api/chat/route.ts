@@ -11,7 +11,14 @@ import {
   needsCompaction,
   trimToFit,
 } from '@/lib/ai/context'
-import { retrieveSources, type Retrieval } from '@/lib/ai/knowledge/retrieve'
+import {
+  RAG_TOKEN_BUDGET,
+  assembleRetrieval,
+  retrieveKnowledge,
+  type Excerpt,
+  type Retrieval,
+} from '@/lib/ai/knowledge/retrieve'
+import { searchWeb, webSearchConfigured } from '@/lib/ai/knowledge/web'
 import type { ChatRequestBody, ChatStreamEvent, Message } from '@/lib/ai/types'
 
 export const runtime = 'nodejs'
@@ -130,27 +137,53 @@ export async function POST(request: Request) {
       let chunks = 0
       let finished = false
       try {
-        // 1. Retrieve knowledge-base excerpts for the latest user turn, if the
-        //    conversation has collections selected.
+        // 1. Retrieve excerpts for the latest user turn: knowledge-base chunks
+        //    when collections are selected, live web results when the web
+        //    toggle is on. Both run together; either failing just drops out.
         const lastUser = history[history.length - 1]
-        if (conversation!.collection_ids?.length && lastUser?.role === 'user') {
-          send({ type: 'status', message: 'Searching knowledge…' })
-          try {
-            knowledge = await retrieveSources(supabase, {
-              query: lastUser.content,
-              collectionIds: conversation!.collection_ids,
-              signal: upstreamAbort.signal,
-            })
-            console.log(
-              `[api/chat] retrieved conversation=${conversationId} collections=${conversation!.collection_ids.length} sources=${knowledge.sources.length}`
-            )
-            send({ type: 'sources', sources: knowledge.sources })
-          } catch (err) {
-            if ((err as Error)?.name === 'AbortError') throw err
-            console.error('[api/chat] retrieval failed, answering without sources', err)
-            send({ type: 'status', message: 'Knowledge search failed; answering without sources…' })
-            knowledge = null
+        const useKb = Boolean(conversation!.collection_ids?.length)
+        const useWeb = Boolean(conversation!.web_search)
+        if ((useKb || useWeb) && lastUser?.role === 'user') {
+          const query = lastUser.content
+          send({
+            type: 'status',
+            message: useWeb && useKb ? 'Searching knowledge and the web…' : useWeb ? 'Searching the web…' : 'Searching knowledge…',
+          })
+          if (useWeb && !webSearchConfigured()) {
+            send({ type: 'status', message: 'Web search is not configured (BRAVE_SEARCH_API_KEY); continuing…' })
           }
+          const webBudget = useKb ? Math.floor(RAG_TOKEN_BUDGET / 2) : RAG_TOKEN_BUDGET
+          const kbBudget = useWeb ? RAG_TOKEN_BUDGET - webBudget : RAG_TOKEN_BUDGET
+
+          const [kb, web] = await Promise.all([
+            useKb
+              ? retrieveKnowledge(supabase, {
+                  query,
+                  collectionIds: conversation!.collection_ids,
+                  tokenBudget: kbBudget,
+                  signal: upstreamAbort.signal,
+                }).catch((err: unknown) => {
+                  if ((err as Error)?.name === 'AbortError') throw err
+                  console.error('[api/chat] knowledge retrieval failed', err)
+                  return [] as Excerpt[]
+                })
+              : Promise.resolve([] as Excerpt[]),
+            useWeb && webSearchConfigured()
+              ? searchWeb(query, { tokenBudget: webBudget, signal: upstreamAbort.signal }).catch(
+                  (err: unknown) => {
+                    if ((err as Error)?.name === 'AbortError') throw err
+                    console.error('[api/chat] web search failed', err)
+                    return { excerpts: [] as Excerpt[], note: 'Web search failed.' }
+                  }
+                )
+              : Promise.resolve({ excerpts: [] as Excerpt[] } as { excerpts: Excerpt[]; note?: string }),
+          ])
+
+          knowledge = assembleRetrieval([...kb, ...web.excerpts])
+          console.log(
+            `[api/chat] retrieved conversation=${conversationId} kb=${kb.length} web=${web.excerpts.length}${web.note ? ` (${web.note})` : ''}`
+          )
+          send({ type: 'sources', sources: knowledge.sources })
         }
 
         // 2. Fit the prompt into the window, compacting older turns if needed.
