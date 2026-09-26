@@ -38,6 +38,12 @@ export function useChat({ userId, model, onConversationCreated }: UseChatOptions
 
   const loadConversation = useCallback(
     async (conversationId: string) => {
+      // send() creates the conversation, sets conversationRef, and then pushes
+      // ?c=<id> into the URL. The URL change re-runs this for the same id; if we
+      // proceeded we would abort the in-flight stream and replace the pending
+      // assistant bubble with the DB snapshot (user turn only), so the reply
+      // never renders until a refresh. Only load when actually switching.
+      if (conversationRef.current === conversationId) return
       abortRef.current?.abort()
       abortRef.current = null
       conversationRef.current = conversationId

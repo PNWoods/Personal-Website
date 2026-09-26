@@ -73,7 +73,10 @@ export async function POST(request: Request) {
       signal: upstreamAbort.signal,
       // think: false keeps thinking-capable models (qwen3.6) from spending the
       // whole budget on hidden reasoning that this stream does not surface.
-      json: { model, messages, stream: true, keep_alive: '30m', think: false },
+      // keep_alive: -1 pins the model in memory on the host so there is no
+      // ~20s cold load after idle. A per-request value overrides the host's
+      // OLLAMA_KEEP_ALIVE, so this is the setting that actually matters.
+      json: { model, messages, stream: true, keep_alive: -1, think: false },
     })
   } catch (err) {
     if (err instanceof OllamaError) {
@@ -122,10 +125,15 @@ export async function POST(request: Request) {
         controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'))
       }
 
+      let chunks = 0
+      let finished = false
       try {
         for await (const chunk of ndjsonLines<OllamaChatChunk>(upstreamBody)) {
+          chunks++
           if (chunk.error) {
+            console.error('[api/chat] ollama error chunk', chunk.error)
             send({ type: 'error', message: chunk.error })
+            finished = true
             break
           }
           const content = chunk.message?.content
@@ -134,7 +142,11 @@ export async function POST(request: Request) {
             send({ type: 'delta', content })
           }
           if (chunk.done) {
+            finished = true
             const messageId = await persist()
+            console.log(
+              `[api/chat] done model=${model} chunks=${chunks} chars=${full.length} reason=${chunk.done_reason ?? '-'} eval=${chunk.eval_count ?? '-'}`
+            )
             send({
               type: 'done',
               messageId,
@@ -144,9 +156,30 @@ export async function POST(request: Request) {
             break
           }
         }
+        if (!finished && !closed) {
+          // Upstream ended without a done chunk and nobody cancelled: surface it.
+          console.error(
+            `[api/chat] upstream ended early model=${model} chunks=${chunks} chars=${full.length}`
+          )
+          send({
+            type: 'error',
+            message: full
+              ? 'Ollama stopped before finishing the reply.'
+              : 'Ollama returned an empty reply.',
+          })
+        }
       } catch (err) {
-        if ((err as Error)?.name !== 'AbortError') {
-          console.error('[api/chat] stream error', err)
+        if ((err as Error)?.name === 'AbortError') {
+          // Client disconnected / Stop, or request.signal fired. Partial reply
+          // is persisted in finally; log so Vercel shows which path it was.
+          console.log(
+            `[api/chat] aborted model=${model} chunks=${chunks} chars=${full.length} clientClosed=${closed}`
+          )
+        } else {
+          console.error(
+            `[api/chat] stream error model=${model} chunks=${chunks} chars=${full.length}`,
+            err
+          )
           try {
             send({
               type: 'error',
