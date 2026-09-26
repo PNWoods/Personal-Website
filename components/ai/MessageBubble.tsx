@@ -20,7 +20,7 @@ export default function MessageBubble({ message }: { message: ChatMessage }) {
         {message.content ? (
           <Markdown content={message.content} />
         ) : message.streaming ? (
-          <span className="text-white/50">Thinking…</span>
+          <span className="text-white/50">{message.status ?? 'Thinking…'}</span>
         ) : null}
         {message.streaming && message.content && (
           <span className="ml-0.5 inline-block h-4 w-2 animate-pulse bg-white/70 align-middle" />

@@ -7,24 +7,46 @@ import { autoTitle } from '@/lib/ai/title'
 import type {
   ChatMessage,
   ChatStreamEvent,
+  ContextUsage,
   Conversation,
   Message,
 } from '@/lib/ai/types'
 
 const PENDING_ID = 'pending-assistant'
+/** Mirrors the server default; replaced by the real value on the first reply. */
+const DEFAULT_NUM_CTX = 32768
 
 interface UseChatOptions {
   userId: string
   model: string | null
   onConversationCreated: (conversation: Conversation) => void
+  onConversationUpdated: (conversation: Conversation) => void
 }
 
-export function useChat({ userId, model, onConversationCreated }: UseChatOptions) {
+/** Same rough estimate the server uses, for the meter before any reply. */
+function estimateUsage(messages: { content: string }[], limit: number): ContextUsage {
+  const chars = messages.reduce((n, m) => n + m.content.length, 0)
+  return {
+    used: Math.ceil(chars / 3.5) + messages.length * 4,
+    limit,
+    estimated: true,
+  }
+}
+
+export function useChat({
+  userId,
+  model,
+  onConversationCreated,
+  onConversationUpdated,
+}: UseChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [streaming, setStreaming] = useState(false)
+  const [compacting, setCompacting] = useState(false)
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [usage, setUsage] = useState<ContextUsage | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const conversationRef = useRef<string | null>(null)
+  const limitRef = useRef(DEFAULT_NUM_CTX)
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -34,6 +56,7 @@ export function useChat({ userId, model, onConversationCreated }: UseChatOptions
     conversationRef.current = null
     setMessages([])
     setStreaming(false)
+    setUsage(null)
   }, [])
 
   const loadConversation = useCallback(
@@ -56,13 +79,13 @@ export function useChat({ userId, model, onConversationCreated }: UseChatOptions
         .order('created_at', { ascending: true })
       // Ignore if the user switched conversations while loading.
       if (conversationRef.current !== conversationId) return
-      setMessages(
-        ((data as Message[] | null) ?? []).map((m) => ({
-          id: m.id,
-          role: m.role,
-          content: m.content,
-        }))
-      )
+      const loaded = ((data as Message[] | null) ?? []).map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+      }))
+      setMessages(loaded)
+      setUsage(loaded.length ? estimateUsage(loaded, limitRef.current) : null)
       setLoadingHistory(false)
     },
     [supabase]
@@ -137,11 +160,9 @@ export function useChat({ userId, model, onConversationCreated }: UseChatOptions
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
-          body: JSON.stringify({
-            conversationId,
-            model,
-            messages: history.map(({ role, content }) => ({ role, content })),
-          }),
+          // The server builds the prompt from the database; `message` only
+          // lets it recover if the insert above failed.
+          body: JSON.stringify({ conversationId, model, message: text }),
         })
 
         if (!res.ok || !res.body) {
@@ -161,9 +182,24 @@ export function useChat({ userId, model, onConversationCreated }: UseChatOptions
           if (event.type === 'delta') {
             content += event.content
             const snapshot = content
-            patchPending({ content: snapshot })
+            patchPending({ content: snapshot, status: undefined })
+          } else if (event.type === 'status') {
+            patchPending({ status: event.message })
+          } else if (event.type === 'compacted') {
+            onConversationUpdated({
+              id: conversationId,
+              summary_message_count: event.summaryMessageCount,
+              summary_upto: event.summaryUpto,
+            } as Conversation)
           } else if (event.type === 'done') {
             finalId = event.messageId
+            limitRef.current = event.num_ctx
+            if (event.prompt_eval_count !== undefined) {
+              setUsage({
+                used: event.prompt_eval_count + (event.eval_count ?? 0),
+                limit: event.num_ctx,
+              })
+            }
           } else if (event.type === 'error') {
             patchPending({ error: event.message })
           }
@@ -181,7 +217,12 @@ export function useChat({ userId, model, onConversationCreated }: UseChatOptions
           setMessages((prev) =>
             prev.map((m) =>
               m.id === PENDING_ID
-                ? { ...m, id: finalId ?? `assistant-${Date.now()}`, streaming: false }
+                ? {
+                    ...m,
+                    id: finalId ?? `assistant-${Date.now()}`,
+                    streaming: false,
+                    status: undefined,
+                  }
                 : m
             )
           )
@@ -189,8 +230,49 @@ export function useChat({ userId, model, onConversationCreated }: UseChatOptions
         }
       }
     },
-    [model, streaming, messages, supabase, userId, onConversationCreated]
+    [model, streaming, messages, supabase, userId, onConversationCreated, onConversationUpdated]
   )
 
-  return { messages, streaming, loadingHistory, send, stop, loadConversation, reset }
+  /** Manual compaction of the active conversation. Returns an error string or null. */
+  const compact = useCallback(async (): Promise<string | null> => {
+    const conversationId = conversationRef.current
+    if (!conversationId || !model || streaming || compacting) return null
+    setCompacting(true)
+    try {
+      const res = await fetch('/api/compact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId, model }),
+      })
+      const data = (await res.json()) as {
+        conversation?: Conversation
+        summarizedCount?: number
+        error?: string
+      }
+      if (!res.ok) return data.error ?? `Compaction failed (${res.status})`
+      if (data.conversation) onConversationUpdated(data.conversation)
+      // The meter is only exact after the next reply; estimate until then.
+      setUsage((prev) =>
+        prev ? { ...prev, estimated: true, used: Math.min(prev.used, Math.ceil(prev.limit * 0.3)) } : prev
+      )
+      return null
+    } catch {
+      return 'Could not reach the server.'
+    } finally {
+      setCompacting(false)
+    }
+  }, [model, streaming, compacting, onConversationUpdated])
+
+  return {
+    messages,
+    streaming,
+    compacting,
+    loadingHistory,
+    usage,
+    send,
+    stop,
+    compact,
+    loadConversation,
+    reset,
+  }
 }

@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { Menu } from 'lucide-react'
+import { Menu, Minimize2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { Conversation, ModelInfo } from '@/lib/ai/types'
 import { useAiBase } from './AiBaseProvider'
 import Sidebar from './Sidebar'
 import MessageList from './MessageList'
+import ContextMeter from './ContextMeter'
 import Composer from './Composer'
 import { useChat } from './useChat'
 import type { OllamaStatus } from './ModelSelect'
@@ -52,8 +53,21 @@ export default function ChatApp({
     [router, pathname]
   )
 
-  const chat = useChat({ userId, model, onConversationCreated })
+  const onConversationUpdated = useCallback((patch: Conversation) => {
+    setConversations((prev) =>
+      prev.map((c) => (c.id === patch.id ? { ...c, ...patch } : c))
+    )
+  }, [])
+
+  const chat = useChat({ userId, model, onConversationCreated, onConversationUpdated })
   const { loadConversation, reset } = chat
+  const [compactError, setCompactError] = useState<string | null>(null)
+
+  async function handleCompact() {
+    setCompactError(null)
+    const err = await chat.compact()
+    if (err) setCompactError(err)
+  }
 
   // Load the selected conversation whenever ?c= changes.
   useEffect(() => {
@@ -171,12 +185,40 @@ export default function ChatApp({
           <span className="truncate text-sm font-medium text-white/80">
             {activeConversation?.title ?? 'New chat'}
           </span>
-          {model && (
-            <span className="ml-auto hidden truncate text-xs text-white/40 sm:block">
-              {model}
+          {(activeConversation?.summary_message_count ?? 0) > 0 && (
+            <span
+              className="hidden shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[11px] text-white/50 sm:block"
+              title="Older messages were summarized so the conversation fits the model's context window. They are still shown here."
+            >
+              {activeConversation!.summary_message_count} compacted
             </span>
           )}
+          <div className="ml-auto flex items-center gap-3">
+            {chat.usage && <ContextMeter usage={chat.usage} />}
+            {activeConversation && chat.messages.length > 6 && (
+              <button
+                type="button"
+                onClick={handleCompact}
+                disabled={chat.streaming || chat.compacting}
+                className="flex h-8 items-center gap-1 rounded px-2 text-xs text-white/60 hover:bg-white/10 hover:text-white disabled:opacity-40"
+                title="Summarize older messages to free up context"
+              >
+                <Minimize2 size={14} />
+                {chat.compacting ? 'Compacting…' : 'Compact'}
+              </button>
+            )}
+            {model && (
+              <span className="hidden truncate text-xs text-white/40 lg:block">
+                {model}
+              </span>
+            )}
+          </div>
         </header>
+        {compactError && (
+          <p className="border-b border-red-500/20 bg-red-500/10 px-4 py-1.5 text-xs text-red-300">
+            {compactError}
+          </p>
+        )}
 
         {chat.loadingHistory && chat.messages.length === 0 ? (
           <div className="flex flex-1 items-center justify-center text-sm text-white/40">

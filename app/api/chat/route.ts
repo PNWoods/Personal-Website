@@ -2,22 +2,28 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { ndjsonLines } from '@/lib/ai/ndjson'
 import { OllamaError, ollamaFetch } from '@/lib/ai/ollama'
-import type { ChatRequestBody, ChatStreamEvent, Role } from '@/lib/ai/types'
+import {
+  NUM_CTX,
+  buildPrompt,
+  compactConversation,
+  loadConversation,
+  loadHistory,
+  needsCompaction,
+  trimToFit,
+} from '@/lib/ai/context'
+import type { ChatRequestBody, ChatStreamEvent, Message } from '@/lib/ai/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 // Streaming a long generation. Vercel Hobby allows 300s with Fluid compute.
 export const maxDuration = 300
 
-const MAX_MESSAGES = 60
-const MAX_CHARS = 100_000
-const ROLES: Role[] = ['user', 'assistant', 'system']
-
 interface OllamaChatChunk {
   message?: { role: string; content: string }
   done?: boolean
   done_reason?: string
   eval_count?: number
+  prompt_eval_count?: number
   error?: string
 }
 
@@ -26,23 +32,11 @@ function parseBody(raw: unknown): ChatRequestBody | null {
   const body = raw as Partial<ChatRequestBody>
   if (typeof body.conversationId !== 'string' || !body.conversationId) return null
   if (typeof body.model !== 'string' || !body.model) return null
-  if (!Array.isArray(body.messages) || body.messages.length === 0) return null
-
-  const messages = body.messages
-    .filter(
-      (m) =>
-        m &&
-        typeof m.content === 'string' &&
-        ROLES.includes(m.role as Role)
-    )
-    .map((m) => ({ role: m.role as Role, content: m.content }))
-    .slice(-MAX_MESSAGES)
-
-  let total = 0
-  for (const m of messages) total += m.content.length
-  if (total > MAX_CHARS) return null
-
-  return { conversationId: body.conversationId, model: body.model, messages }
+  const message =
+    typeof body.message === 'string' && body.message.trim()
+      ? body.message
+      : undefined
+  return { conversationId: body.conversationId, model: body.model, message }
 }
 
 export async function POST(request: Request) {
@@ -63,40 +57,32 @@ export async function POST(request: Request) {
   if (!body) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
-  const { conversationId, model, messages } = body
+  const { conversationId, model } = body
+
+  // The server owns the prompt: history comes from the database (RLS scopes it
+  // to this user), not from the client.
+  let conversation = await loadConversation(supabase, conversationId)
+  if (!conversation) {
+    return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+  }
+  let history = await loadHistory(supabase, conversation)
+
+  // The client saves the user turn before calling us. If that insert failed,
+  // recover by saving it here so the model still sees the question.
+  const last = history[history.length - 1]
+  if (body.message && !(last?.role === 'user' && last.content === body.message)) {
+    const { data } = await supabase
+      .from('messages')
+      .insert({ conversation_id: conversationId, role: 'user', content: body.message })
+      .select('*')
+      .single()
+    if (data) history.push(data as Message)
+  }
+  if (history.length === 0) {
+    return NextResponse.json({ error: 'Nothing to send' }, { status: 400 })
+  }
 
   const upstreamAbort = new AbortController()
-  let upstream: Response
-  try {
-    upstream = await ollamaFetch('/api/chat', {
-      method: 'POST',
-      signal: upstreamAbort.signal,
-      // think: false keeps thinking-capable models (qwen3.6) from spending the
-      // whole budget on hidden reasoning that this stream does not surface.
-      // keep_alive: the model stays resident this long after the last message
-      // and then unloads to save power overnight; the next message pays a
-      // ~20s cold load. A per-request value overrides the host's
-      // OLLAMA_KEEP_ALIVE, so this is the setting that actually matters.
-      json: { model, messages, stream: true, keep_alive: '30m', think: false },
-    })
-  } catch (err) {
-    if (err instanceof OllamaError) {
-      return NextResponse.json({ error: err.message }, { status: err.status })
-    }
-    return NextResponse.json(
-      { error: 'Failed to reach Ollama' },
-      { status: 502 }
-    )
-  }
-
-  if (!upstream.body) {
-    return NextResponse.json(
-      { error: 'Ollama returned an empty response' },
-      { status: 502 }
-    )
-  }
-  const upstreamBody = upstream.body
-
   const encoder = new TextEncoder()
   let full = ''
   let persisted = false
@@ -125,15 +111,87 @@ export async function POST(request: Request) {
         if (closed) return
         controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'))
       }
+      const fail = (message: string) => {
+        try {
+          send({ type: 'error', message })
+        } catch {
+          // controller already closed
+        }
+      }
 
       let chunks = 0
       let finished = false
       try {
-        for await (const chunk of ndjsonLines<OllamaChatChunk>(upstreamBody)) {
+        // 1. Fit the prompt into the window, compacting older turns if needed.
+        let prompt = buildPrompt(conversation!, history)
+        if (needsCompaction(prompt, history.length)) {
+          send({ type: 'status', message: 'Compacting earlier messages…' })
+          try {
+            const result = await compactConversation(
+              supabase,
+              conversation!,
+              history,
+              model,
+              { signal: upstreamAbort.signal }
+            )
+            conversation = result.conversation
+            history = result.history
+            prompt = buildPrompt(conversation, history)
+            console.log(
+              `[api/chat] compacted conversation=${conversationId} summarized=${result.summarizedCount} total=${conversation.summary_message_count}`
+            )
+            send({
+              type: 'compacted',
+              summarizedCount: result.summarizedCount,
+              summaryMessageCount: conversation.summary_message_count,
+              summaryUpto: conversation.summary_upto ?? '',
+            })
+          } catch (err) {
+            if ((err as Error)?.name === 'AbortError') throw err
+            // Fall back to trimming so the user still gets an answer.
+            console.error('[api/chat] compaction failed, trimming instead', err)
+          }
+        }
+        prompt = trimToFit(prompt)
+
+        // 2. Stream the reply.
+        send({ type: 'status', message: 'Thinking…' })
+        let upstream: Response
+        try {
+          upstream = await ollamaFetch('/api/chat', {
+            method: 'POST',
+            signal: upstreamAbort.signal,
+            json: {
+              model,
+              messages: prompt,
+              stream: true,
+              // think: false keeps thinking-capable models (qwen3.6) from
+              // spending the budget on hidden reasoning this stream does not
+              // surface. keep_alive: the model unloads after 30 idle minutes
+              // to save power overnight (a per-request value overrides the
+              // host's OLLAMA_KEEP_ALIVE).
+              think: false,
+              keep_alive: '30m',
+              options: { num_ctx: NUM_CTX },
+            },
+          })
+        } catch (err) {
+          if ((err as Error)?.name === 'AbortError') throw err
+          fail(err instanceof OllamaError ? err.message : 'Failed to reach Ollama')
+          finished = true
+          return
+        }
+        if (!upstream.body) {
+          fail('Ollama returned an empty response')
+          finished = true
+          return
+        }
+
+        for await (const chunk of ndjsonLines<OllamaChatChunk>(upstream.body)) {
           chunks++
           if (chunk.error) {
             console.error('[api/chat] ollama error chunk', chunk.error)
-            send({ type: 'error', message: chunk.error })
+            fail(chunk.error)
             finished = true
             break
           }
@@ -146,13 +204,15 @@ export async function POST(request: Request) {
             finished = true
             const messageId = await persist()
             console.log(
-              `[api/chat] done model=${model} chunks=${chunks} chars=${full.length} reason=${chunk.done_reason ?? '-'} eval=${chunk.eval_count ?? '-'}`
+              `[api/chat] done model=${model} chunks=${chunks} chars=${full.length} prompt=${chunk.prompt_eval_count ?? '-'} eval=${chunk.eval_count ?? '-'} reason=${chunk.done_reason ?? '-'}`
             )
             send({
               type: 'done',
               messageId,
               done_reason: chunk.done_reason,
               eval_count: chunk.eval_count,
+              prompt_eval_count: chunk.prompt_eval_count,
+              num_ctx: NUM_CTX,
             })
             break
           }
@@ -162,12 +222,11 @@ export async function POST(request: Request) {
           console.error(
             `[api/chat] upstream ended early model=${model} chunks=${chunks} chars=${full.length}`
           )
-          send({
-            type: 'error',
-            message: full
+          fail(
+            full
               ? 'Ollama stopped before finishing the reply.'
-              : 'Ollama returned an empty reply.',
-          })
+              : 'Ollama returned an empty reply.'
+          )
         }
       } catch (err) {
         if ((err as Error)?.name === 'AbortError') {
@@ -181,14 +240,7 @@ export async function POST(request: Request) {
             `[api/chat] stream error model=${model} chunks=${chunks} chars=${full.length}`,
             err
           )
-          try {
-            send({
-              type: 'error',
-              message: 'The connection to Ollama dropped mid-response.',
-            })
-          } catch {
-            // controller already closed
-          }
+          fail('The connection to Ollama dropped mid-response.')
         }
       } finally {
         await persist()

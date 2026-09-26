@@ -98,7 +98,8 @@ curl -s -H "CF-Access-Client-Id: $ID" -H "CF-Access-Client-Secret: $SECRET" \
 
 1. Dashboard → project → **Restore project** (free projects pause after ~7 days
    without API traffic). Wait until it reports healthy.
-2. SQL editor → paste and run `supabase/migrations/0003_chat_schema.sql`.
+2. SQL editor → paste and run `supabase/migrations/0003_chat_schema.sql`,
+   then `supabase/migrations/0004_conversation_summary.sql` (compaction columns).
 3. Confirm the manually created user still exists under **Authentication →
    Users** and that email signups remain disabled.
 4. The daily cron in `vercel.json` hits `/api/cron/keepalive`, which runs one
@@ -123,6 +124,7 @@ curl -s -H "CF-Access-Client-Id: $ID" -H "CF-Access-Client-Secret: $SECRET" \
    | `CF_ACCESS_CLIENT_ID` | from step 3 |
    | `CF_ACCESS_CLIENT_SECRET` | from step 3 |
    | `AI_HOST` | `ai.pnwoods.com` (optional, this is the default) |
+   | `OLLAMA_NUM_CTX` | context window requested per request (optional, default `32768`) |
    | `CRON_SECRET` | `openssl rand -hex 32` |
    | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | already set |
 
