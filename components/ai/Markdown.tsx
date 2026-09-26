@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Check, Copy } from 'lucide-react'
 import { citationTarget } from '@/lib/ai/citations'
@@ -73,6 +73,9 @@ export default function Markdown({
     <div className="prose prose-invert prose-sm max-w-none break-words md:prose-base prose-pre:bg-transparent prose-pre:p-0">
       <ReactMarkdown
         remarkPlugins={plugins}
+        // react-markdown strips hrefs with unknown schemes; keep our internal
+        // cite: links (they never reach the DOM as-is, see the `a` renderer).
+        urlTransform={(url) => (url.startsWith('cite:') ? url : defaultUrlTransform(url))}
         components={{
           // Fenced blocks arrive as <pre><code className="language-x">.
           pre({ children }) {
