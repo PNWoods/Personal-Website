@@ -3,10 +3,12 @@
  * which files are accepted, how big they may be, and where they are stored.
  */
 
-export type FileKind = 'text' | 'markdown' | 'csv' | 'sql' | 'pdf' | 'docx' | 'pptx'
+export type FileKind = 'text' | 'markdown' | 'csv' | 'sql' | 'pdf' | 'docx' | 'pptx' | 'image'
 
 /** Matches the bucket's file_size_limit in migration 0006. */
 export const MAX_FILE_BYTES = 50 * 1024 * 1024
+/** Images go through the vision model, which gets slow past a few megapixels. */
+export const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
 const BY_EXTENSION: Record<string, FileKind> = {
   txt: 'text',
@@ -21,6 +23,11 @@ const BY_EXTENSION: Record<string, FileKind> = {
   pdf: 'pdf',
   docx: 'docx',
   pptx: 'pptx',
+  png: 'image',
+  jpg: 'image',
+  jpeg: 'image',
+  webp: 'image',
+  gif: 'image',
 }
 
 const BY_MIME: Record<string, FileKind> = {
@@ -32,6 +39,10 @@ const BY_MIME: Record<string, FileKind> = {
   'application/pdf': 'pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+  'image/png': 'image',
+  'image/jpeg': 'image',
+  'image/webp': 'image',
+  'image/gif': 'image',
 }
 
 /** Value for <input type="file" accept>. */
@@ -44,6 +55,10 @@ export function detectKind(name: string, mime?: string | null): FileKind | null 
   if (BY_EXTENSION[ext]) return BY_EXTENSION[ext]
   if (mime && BY_MIME[mime]) return BY_MIME[mime]
   return null
+}
+
+export function maxBytesFor(kind: FileKind): number {
+  return kind === 'image' ? MAX_IMAGE_BYTES : MAX_FILE_BYTES
 }
 
 export function sanitizeFilename(name: string): string {

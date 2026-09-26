@@ -45,15 +45,20 @@ export default function KnowledgeApp({
   }, [])
 
   const onProgress = useCallback(
-    (r: IngestResponse) => {
+    async (r: IngestResponse) => {
       patchDocument(r.documentId, {
         status: r.status,
         chunk_count: r.chunkCount,
         embedded_count: r.embeddedCount,
         error: r.error ?? null,
       })
+      if (r.done && r.status === 'ready') {
+        // web pages get their real title and stored text during ingestion
+        const { data } = await supabase.from('documents').select('*').eq('id', r.documentId).maybeSingle()
+        if (data) patchDocument(r.documentId, data as KnowledgeDocument)
+      }
     },
-    [patchDocument]
+    [patchDocument, supabase]
   )
   const { ingest, activeIds } = useIngest(onProgress)
 
@@ -186,6 +191,26 @@ export default function KnowledgeApp({
     ingest((data as KnowledgeDocument).id)
   }
 
+  async function addUrl(url: string) {
+    if (!selected || !isOwner) return
+    setError(null)
+    const { data, error } = await supabase
+      .from('documents')
+      .insert({
+        collection_id: selected.id,
+        user_id: userId,
+        title: url,
+        source_type: 'url',
+        source_url: url,
+        status: 'pending',
+      })
+      .select('*')
+      .single()
+    if (error || !data) return fail(`Could not add the page: ${error?.message}`)
+    setDocuments((prev) => [data as KnowledgeDocument, ...prev])
+    ingest((data as KnowledgeDocument).id)
+  }
+
   async function saveNote(doc: KnowledgeDocument, title: string, content: string) {
     const { error } = await supabase
       .from('documents')
@@ -307,7 +332,9 @@ export default function KnowledgeApp({
                 {selected.description && (
                   <p className="text-sm text-white/50">{selected.description}</p>
                 )}
-                {isOwner && <AddDocument onFiles={addFiles} onNote={addNote} busy={busy} />}
+                {isOwner && (
+                  <AddDocument onFiles={addFiles} onNote={addNote} onUrl={addUrl} busy={busy} />
+                )}
                 <DocumentList
                   documents={docsInSelected}
                   isOwner={isOwner}
