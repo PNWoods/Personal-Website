@@ -1,11 +1,6 @@
-import Navigation from '@/components/Navigation'
-import HomePage from '@/components/sections/HomePage'
+import { permanentRedirect } from 'next/navigation'
 
-export default function HomePageRoute() {
-  return (
-    <>
-      <Navigation />
-      <HomePage />
-    </>
-  )
+/** The homepage used to live at /home; keep old links working. */
+export default function LegacyHome() {
+  permanentRedirect('/')
 }

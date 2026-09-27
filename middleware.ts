@@ -108,6 +108,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Private tool: keep its login page out of search results.
+  response.headers.set('X-Robots-Tag', 'noindex, nofollow')
   return response
 }
 
