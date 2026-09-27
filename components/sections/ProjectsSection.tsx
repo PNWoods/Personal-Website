@@ -22,7 +22,7 @@ const PROJECTS: Project[] = [
     icon: Database,
     gradient: 'from-emerald-400 to-teal-500',
     description:
-      'AI and Data Engineer at Fayetteville Public Works Commission: data pipelines and ML systems for utility operations, custom RAG agents that let staff search internal documentation and the data dictionary, purpose-built agents in Microsoft Copilot Studio for business teams, and hands-on AI training for staff across the utility.',
+      'AI and Data Engineer at Fayetteville Public Works Commission: a centralized data lake and pipelines that put operational data in one queryable place, BI reporting on top of it, custom RAG agents that let staff search internal documentation and the data dictionary, purpose-built agents in Microsoft Copilot Studio and Oracle AI Agent Studio for business teams, and hands-on AI training for staff across the utility.',
     skills: [
       'Python',
       'SQL',
@@ -32,6 +32,7 @@ const PROJECTS: Project[] = [
       'Embeddings',
       'Vector Databases',
       'Microsoft Copilot Studio',
+      'Oracle AI Agent Studio',
       'Prompt Engineering',
       'AI Training',
       'Staff Training',
