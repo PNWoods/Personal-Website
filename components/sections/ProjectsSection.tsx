@@ -110,7 +110,7 @@ const PROJECTS: Project[] = [
     icon: HardDrive,
     gradient: 'from-slate-400 to-zinc-600',
     description:
-      'A Proxmox VE host running the services behind everything else here, each in its own LXC container: Pi-hole DNS for the whole network, the SearXNG metasearch engine that gives the AI workspace live web results, a Docker media-automation stack, a network file share, two dedicated game servers, and a small game-community bot. LLM inference runs on a pool of three NVIDIA GPUs with 56 GB of VRAM between them, plus another 40 GB of unified memory on Apple silicon. Tailscale handles remote access, and the few public endpoints go out through Cloudflare Tunnel behind Zero Trust.',
+      'A Proxmox VE host running the services behind everything else here, with local LLM inference on 96 GB of pooled GPU memory across three NVIDIA cards and an Apple silicon machine. Each service lives in its own LXC container: Pi-hole DNS for the whole network, the SearXNG metasearch engine that gives the AI workspace live web results, a Docker media-automation stack, a network file share, two dedicated game servers, and a small game-community bot. Tailscale handles remote access, and the few public endpoints go out through Cloudflare Tunnel behind Zero Trust.',
     skills: [
       'Proxmox',
       'Linux/Unix',
