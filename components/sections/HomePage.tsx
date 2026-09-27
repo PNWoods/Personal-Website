@@ -81,7 +81,7 @@ export default function HomePage() {
             <li>
               <p className="font-semibold text-white">AI &amp; Data Engineer · Fayetteville PWC</p>
               <p className="mt-1 text-sm leading-relaxed text-gray-400">
-                Data pipelines, ML, and RAG agents for utility operations on Oracle Utilities C2M.
+                Data pipelines, ML, and RAG agents for utility operations.
               </p>
             </li>
             <li>
