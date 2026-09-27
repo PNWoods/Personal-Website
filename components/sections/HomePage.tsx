@@ -31,7 +31,7 @@ export default function HomePage() {
               <span className="block text-blue-400">Patrick Woods</span>
             </h1>
             <p className="mx-auto mb-8 max-w-2xl text-xl text-gray-300 lg:mx-0">
-              AI and Data Engineer at Fayetteville PWC and co-founder of RFP-Pilot. I build data
+              AI and Data Engineer at Fayetteville PWC and co-founder of RFP Pilot. I build data
               pipelines, RAG systems, and on-device LLM tooling.
             </p>
             <div className="flex flex-col justify-center gap-4 sm:flex-row lg:justify-start">
@@ -85,10 +85,10 @@ export default function HomePage() {
               </p>
             </li>
             <li>
-              <p className="font-semibold text-white">Co-founder · RFP-Pilot</p>
+              <p className="font-semibold text-white">Co-founder · RFP Pilot</p>
               <p className="mt-1 text-sm leading-relaxed text-gray-400">
-                Multi-agent RAG that drafts RFP responses for small businesses. In pilot with early
-                customers.{' '}
+                AI proposal drafting for government and disaster-recovery responders: every
+                requirement extracted, every answer grounded in the firm&apos;s own record.{' '}
                 <a
                   href="https://rfppilot.com"
                   target="_blank"

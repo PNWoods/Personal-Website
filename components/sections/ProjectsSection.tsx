@@ -41,11 +41,11 @@ const PROJECTS: Project[] = [
     ],
   },
   {
-    title: 'RFP-Pilot',
+    title: 'RFP Pilot',
     icon: FileText,
     gradient: 'from-blue-400 to-purple-500',
     description:
-      'Co-founder of RFP-Pilot, a cloud platform that streamlines the request-for-proposal process for small businesses. A multi-agent RAG architecture reads the RFP and the company’s past material and drafts the response; AWS runs the backend. In pilot with early customers.',
+      'Co-founder of RFP Pilot, an AI proposal tool for state and local government and disaster-recovery responders. It reads the raw solicitation as posted, extracts every requirement into a traceable compliance checklist, and drafts first responses grounded in the firm’s own past proposals, citing sources, scoring confidence, and flagging gaps instead of fabricating. I built the document ingestion and semantic retrieval pipeline, the RAG grounding, and the human-in-the-loop review flow that lets reviewers validate question by question, lowest-confidence answers first. Running free concierge pilots with early customers.',
     links: [{ href: 'https://rfppilot.com', label: 'rfppilot.com' }],
     skills: [
       'Python',
