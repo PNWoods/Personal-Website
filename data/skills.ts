@@ -48,6 +48,7 @@ export const SKILL_GROUPS: SkillGroup[] = [
       'Local LLM Hosting',
       'Prompt Engineering',
       'Microsoft Copilot Studio',
+      'Oracle AI Agent Studio',
       'Model Context Protocol (MCP)',
       'LLM Optimization',
       'Quantization',
