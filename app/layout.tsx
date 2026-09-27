@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
+import { Analytics } from '@vercel/analytics/next'
 import { ContactModalProvider } from '../components/ContactModalProvider'
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from '@/lib/site'
 
@@ -45,6 +46,8 @@ export default function RootLayout({
             </ContactModalProvider>
           </div>
         </div>
+        {/* Cookie-free page-view counts (Vercel Web Analytics). */}
+        <Analytics />
       </body>
     </html>
   )
