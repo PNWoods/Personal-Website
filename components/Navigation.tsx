@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Menu, X } from 'lucide-react'
-import { NAV_LINKS } from '@/lib/site'
+import { NAV_LINKS, RESUME_PATH } from '@/lib/site'
 import { useContactModal } from './ContactModalProvider'
 
 export default function Navigation() {
@@ -42,6 +42,14 @@ export default function Navigation() {
                 {l.label}
               </Link>
             ))}
+            <a
+              href={RESUME_PATH}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-300 transition-colors hover:text-white"
+            >
+              Resume
+            </a>
             <button onClick={showContactModal} className="text-gray-300 transition-colors hover:text-white">
               Contact
             </button>
@@ -77,6 +85,14 @@ export default function Navigation() {
                 {l.label}
               </Link>
             ))}
+            <a
+              href={RESUME_PATH}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2 py-3 text-lg text-gray-300 transition-colors hover:text-white"
+            >
+              Resume
+            </a>
             <button
               onClick={() => {
                 setOpen(false)

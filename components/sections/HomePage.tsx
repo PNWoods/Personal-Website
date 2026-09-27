@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { Github, Linkedin } from 'lucide-react'
-import { CONTACT } from '@/lib/site'
+import { CONTACT, RESUME_PATH } from '@/lib/site'
 import { useContactModal } from '../ContactModalProvider'
 
 export default function HomePage() {
@@ -66,6 +66,14 @@ export default function HomePage() {
                 aria-label="LinkedIn"
               >
                 <Linkedin className="h-6 w-6" />
+              </a>
+              <a
+                href={RESUME_PATH}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-gray-400 transition-colors hover:text-white"
+              >
+                Resume ↗
               </a>
               <Link href="/skills" className="text-sm text-gray-400 transition-colors hover:text-white">
                 Skills →

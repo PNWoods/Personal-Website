@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import { Github, Linkedin, Lock, Mail } from 'lucide-react'
-import { CONTACT } from '@/lib/site'
+import { FileText, Github, Linkedin, Lock, Mail } from 'lucide-react'
+import { CONTACT, RESUME_PATH } from '@/lib/site'
 
 export default function Footer() {
   const year = new Date().getFullYear()
@@ -10,6 +10,15 @@ export default function Footer() {
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 sm:flex-row sm:px-6 lg:px-8">
         <p className="text-sm text-gray-400">© {year} Patrick Woods</p>
         <div className="flex items-center gap-5">
+          <a
+            href={RESUME_PATH}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-sm text-gray-400 transition-colors hover:text-white"
+          >
+            <FileText className="h-3.5 w-3.5" aria-hidden />
+            Resume
+          </a>
           <Link href="/contact" className="text-sm text-gray-400 transition-colors hover:text-white">
             Contact
           </Link>

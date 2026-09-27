@@ -14,6 +14,9 @@ export const CONTACT = {
   github: 'https://github.com/PNWoods',
 } as const
 
+/** One-page PDF in public/. Replace the file to update; the links stay the same. */
+export const RESUME_PATH = '/resume.pdf'
+
 /** Publications, newest first. Author order as published. */
 export const PUBLICATIONS = [
   {
