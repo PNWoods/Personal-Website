@@ -81,7 +81,7 @@ export default function HomePage() {
             <li>
               <p className="font-semibold text-white">AI &amp; Data Engineer · Fayetteville PWC</p>
               <p className="mt-1 text-sm leading-relaxed text-gray-400">
-                Data pipelines, ML, and RAG agents for utility operations.
+                Data pipelines, RAG and Copilot Studio agents, and AI training for a utility.
               </p>
             </li>
             <li>

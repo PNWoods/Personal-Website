@@ -22,7 +22,7 @@ const PROJECTS: Project[] = [
     icon: Database,
     gradient: 'from-emerald-400 to-teal-500',
     description:
-      'AI and Data Engineer at Fayetteville Public Works Commission: data pipelines and ML systems for utility operations, plus custom RAG agents that let staff search internal documentation and the data dictionary.',
+      'AI and Data Engineer at Fayetteville Public Works Commission: data pipelines and ML systems for utility operations, custom RAG agents that let staff search internal documentation and the data dictionary, purpose-built agents in Microsoft Copilot Studio for business teams, and hands-on AI training for staff across the utility.',
     skills: [
       'Python',
       'SQL',
@@ -31,6 +31,10 @@ const PROJECTS: Project[] = [
       'Multi-Agent RAG',
       'Embeddings',
       'Vector Databases',
+      'Microsoft Copilot Studio',
+      'Prompt Engineering',
+      'AI Training',
+      'Staff Training',
       'API Development',
       'API Integration',
     ],
@@ -106,7 +110,7 @@ const PROJECTS: Project[] = [
     icon: HardDrive,
     gradient: 'from-slate-400 to-zinc-600',
     description:
-      'A Proxmox VE host running the services behind everything else here, each in its own LXC container: Pi-hole DNS for the whole network, the SearXNG metasearch engine that gives the AI workspace live web results, a Docker media-automation stack, a network file share, a dedicated Palworld game server, and a small game-community bot. LLM inference runs on a pool of three NVIDIA GPUs with 56 GB of VRAM between them, plus another 40 GB of unified memory on Apple silicon. Tailscale handles remote access, and the few public endpoints go out through Cloudflare Tunnel behind Zero Trust.',
+      'A Proxmox VE host running the services behind everything else here, each in its own LXC container: Pi-hole DNS for the whole network, the SearXNG metasearch engine that gives the AI workspace live web results, a Docker media-automation stack, a network file share, two dedicated game servers, and a small game-community bot. LLM inference runs on a pool of three NVIDIA GPUs with 56 GB of VRAM between them, plus another 40 GB of unified memory on Apple silicon. Tailscale handles remote access, and the few public endpoints go out through Cloudflare Tunnel behind Zero Trust.',
     skills: [
       'Proxmox',
       'Linux/Unix',
