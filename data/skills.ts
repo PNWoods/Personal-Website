@@ -71,7 +71,6 @@ export const SKILL_GROUPS: SkillGroup[] = [
       'pgvector',
       'Supabase',
       'Oracle Database',
-      'Oracle Utilities C2M',
       'Vector Databases',
       'REST APIs',
       'API Development',

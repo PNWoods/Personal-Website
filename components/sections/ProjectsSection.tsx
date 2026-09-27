@@ -22,12 +22,11 @@ const PROJECTS: Project[] = [
     icon: Database,
     gradient: 'from-emerald-400 to-teal-500',
     description:
-      'AI and Data Engineer at Fayetteville Public Works Commission: data pipelines and ML systems for utility operations on Oracle Utilities C2M, plus custom RAG agents that let staff search internal documentation and the C2M data dictionary.',
+      'AI and Data Engineer at Fayetteville Public Works Commission: data pipelines and ML systems for utility operations, plus custom RAG agents that let staff search internal documentation and the data dictionary.',
     skills: [
       'Python',
       'SQL',
       'Oracle Database',
-      'Oracle Utilities C2M',
       'RAG',
       'Multi-Agent RAG',
       'Embeddings',
@@ -67,9 +66,9 @@ const PROJECTS: Project[] = [
     gradient: 'from-orange-400 to-rose-500',
     description: (
       <>
-        This site, plus an invite-only ChatGPT-style workspace at ai.pnwoods.com that runs a
-        35B-parameter coding model on my own GPU. Next.js on Vercel, Supabase for auth, Postgres
-        and file storage, hybrid vector + full-text RAG over uploaded documents and a full C2M data
+        This site, plus an invite-only ChatGPT-style workspace at ai.pnwoods.com that runs
+        open-weight coding models on my own hardware. Next.js on Vercel, Supabase for auth, Postgres
+        and file storage, hybrid vector + full-text RAG over uploaded documents and a full data
         dictionary, per-user memory and personalization, live web search through a self-hosted
         SearXNG, and Ollama exposed through a Cloudflare Tunnel locked with Zero Trust service
         tokens. The same model powers an agentic coding setup in VS Code.
@@ -107,7 +106,7 @@ const PROJECTS: Project[] = [
     icon: HardDrive,
     gradient: 'from-slate-400 to-zinc-600',
     description:
-      'A Proxmox VE host running the services behind everything else here, each in its own LXC container: Pi-hole DNS for the whole network, the SearXNG metasearch engine that gives the AI workspace live web results, a Docker media-automation stack, a network file share, a dedicated Palworld game server, and a small game-community bot. Tailscale handles remote access; the few public endpoints go out through Cloudflare Tunnel behind Zero Trust, and a Windows laptop with an RTX 4080 serves the LLMs.',
+      'A Proxmox VE host running the services behind everything else here, each in its own LXC container: Pi-hole DNS for the whole network, the SearXNG metasearch engine that gives the AI workspace live web results, a Docker media-automation stack, a network file share, a dedicated Palworld game server, and a small game-community bot. LLM inference runs on a pool of three NVIDIA GPUs with 56 GB of VRAM between them, plus another 40 GB of unified memory on Apple silicon. Tailscale handles remote access, and the few public endpoints go out through Cloudflare Tunnel behind Zero Trust.',
     skills: [
       'Proxmox',
       'Linux/Unix',
