@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Github, Linkedin, Mail } from 'lucide-react'
+import { Github, Linkedin, Lock, Mail } from 'lucide-react'
 import { CONTACT } from '@/lib/site'
 
 export default function Footer() {
@@ -13,6 +13,14 @@ export default function Footer() {
           <Link href="/contact" className="text-sm text-gray-400 transition-colors hover:text-white">
             Contact
           </Link>
+          <a
+            href="https://ai.pnwoods.com"
+            className="inline-flex items-center gap-1 text-sm text-gray-400 transition-colors hover:text-white"
+            title="Private AI workspace (invite only)"
+          >
+            <Lock className="h-3.5 w-3.5" aria-hidden />
+            AI chat
+          </a>
           <a href={CONTACT.github} target="_blank" rel="noopener noreferrer" className={iconClass} aria-label="GitHub">
             <Github className="h-5 w-5" />
           </a>

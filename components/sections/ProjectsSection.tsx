@@ -1,15 +1,199 @@
-import { ArrowUpRight, Database, FileText, GraduationCap, Server, Smartphone } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { ArrowUpRight, Bot, Database, FileText, GraduationCap, Lock, Server, Smartphone } from 'lucide-react'
 import SkillTag from '../SkillTag'
 import { getSkillColor } from '../../data/skills'
+import { CONTACT } from '@/lib/site'
 
-function ExternalLinkRow({ href, label }: { href: string; label: string }) {
+interface Project {
+  title: string
+  icon: LucideIcon
+  gradient: string
+  description: React.ReactNode
+  links?: { href: string; label: string; lock?: boolean }[]
+  /** Names must exist in data/skills.ts so colours match the Skills page. */
+  skills: string[]
+}
+
+const PAPER_URL = 'https://arxiv.org/abs/2604.04722'
+
+const PROJECTS: Project[] = [
+  {
+    title: 'Fayetteville PWC',
+    icon: Database,
+    gradient: 'from-emerald-400 to-teal-500',
+    description:
+      'AI and Data Engineer at Fayetteville Public Works Commission: data pipelines and ML systems for utility operations on Oracle Utilities C2M, plus custom RAG agents that let staff search internal documentation and the C2M data dictionary.',
+    skills: [
+      'Python',
+      'SQL',
+      'Oracle Database',
+      'Oracle Utilities C2M',
+      'RAG',
+      'Multi-Agent RAG',
+      'Embeddings',
+      'Vector Databases',
+      'API Development',
+      'API Integration',
+    ],
+  },
+  {
+    title: 'RFP-Pilot',
+    icon: FileText,
+    gradient: 'from-blue-400 to-purple-500',
+    description:
+      'Co-founder of RFP-Pilot, a cloud platform that streamlines the request-for-proposal process for small businesses. A multi-agent RAG architecture reads the RFP and the company’s past material and drafts the response; AWS runs the backend. In pilot with early customers.',
+    links: [{ href: 'https://rfppilot.com', label: 'rfppilot.com' }],
+    skills: [
+      'Python',
+      'TypeScript',
+      'Next.js',
+      'SQL',
+      'Multi-Agent RAG',
+      'OpenAI API',
+      'Vector Databases',
+      'PostgreSQL',
+      'pgvector',
+      'AWS',
+      'Lambda Functions',
+      'API Development',
+      'API Integration',
+      'Git',
+      'Frontend Design',
+    ],
+  },
+  {
+    title: 'pnwoods.com + private AI workspace',
+    icon: Bot,
+    gradient: 'from-orange-400 to-rose-500',
+    description: (
+      <>
+        This site, plus an invite-only ChatGPT-style workspace at ai.pnwoods.com that runs a
+        35B-parameter coding model on my own GPU. Next.js on Vercel, Supabase for auth, Postgres
+        and file storage, hybrid vector + full-text RAG over uploaded documents and a full C2M data
+        dictionary, per-user memory and personalization, live web search through a self-hosted
+        SearXNG, and Ollama exposed through a Cloudflare Tunnel locked with Zero Trust service
+        tokens. The same model powers an agentic coding setup in VS Code.
+      </>
+    ),
+    links: [
+      { href: 'https://github.com/PNWoods/Personal-Website', label: 'Source on GitHub' },
+      { href: 'https://ai.pnwoods.com', label: 'ai.pnwoods.com (invite only)', lock: true },
+    ],
+    skills: [
+      'TypeScript',
+      'Next.js',
+      'React',
+      'Tailwind CSS',
+      'Vercel',
+      'Supabase',
+      'PostgreSQL',
+      'pgvector',
+      'Hybrid Search',
+      'Embeddings',
+      'RAG',
+      'Ollama',
+      'Local LLM Hosting',
+      'Prompt Engineering',
+      'Model Context Protocol (MCP)',
+      'Cloudflare Tunnel & Zero Trust',
+      'Docker',
+      'Proxmox',
+      'Tailscale',
+      'Self-Hosted Services',
+    ],
+  },
+  {
+    title: 'Clemson AI Research - Edge LLMs',
+    icon: Smartphone,
+    gradient: 'from-indigo-400 to-cyan-500',
+    description: (
+      <>
+        Undergraduate AI research at Clemson University on optimizing and deploying Large Language
+        Models on edge devices. Co-authored{' '}
+        <a
+          href={PAPER_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-400 underline hover:text-blue-300"
+        >
+          &ldquo;Don&apos;t Waste Bits! Adaptive KV-Cache Quantization for Lightweight On-Device LLMs&rdquo;
+        </a>
+        , accepted to the LoViF Workshop at CVPR 2026. Contributed the base test suite and built the
+        learned controller with Gabriel Hillesheim: it selects between 2-bit, 4-bit, 8-bit and FP16
+        precision per token using lightweight signals to improve the accuracy-latency trade-off.
+      </>
+    ),
+    links: [{ href: PAPER_URL, label: 'Read the paper on arXiv' }],
+    skills: [
+      'Python',
+      'PyTorch',
+      'Hugging Face',
+      'LangChain',
+      'LLM Optimization',
+      'Edge Computing',
+      'Model Compression',
+      'Quantization',
+      'Pruning',
+      'Knowledge Distillation',
+      'Parameter-Efficient Fine-Tuning (PEFT)',
+      'Inference Optimization',
+      'Technical Presentations',
+    ],
+  },
+  {
+    title: 'Clemson AI Research - RAG Systems',
+    icon: GraduationCap,
+    gradient: 'from-purple-400 to-pink-500',
+    description:
+      'Undergraduate AI research at Clemson University using the Palmetto HPC cluster for AI training and optimization. Developed a RAG model combining retrieval-based search with generative AI to improve response accuracy, and presented the work to University of Florida faculty.',
+    skills: [
+      'Python',
+      'LangChain',
+      'Hugging Face',
+      'OpenAI API',
+      'CUDA Toolkit',
+      'RAG',
+      'Embeddings',
+      'Parallel Computing',
+      'GPU Programming',
+      'Distributed Computing',
+      'Slurm',
+      'Palmetto Cluster HPC',
+      'AI Training',
+      'Technical Presentations',
+    ],
+  },
+  {
+    title: 'BCDA LLC Network Infrastructure',
+    icon: Server,
+    gradient: 'from-green-400 to-blue-500',
+    description:
+      'Led network expansion and software implementation at BCDA LLC: grew the network to support 42 new devices, deployed and trained all staff on new software systems, and kept 99.9% network uptime with 95% of technical issues resolved within 6 hours.',
+    skills: [
+      'Network Administration',
+      'System Integration',
+      'Infrastructure',
+      'NAS Management',
+      'SSH',
+      'Windows Server',
+      'VMware Virtualization',
+      'Docker Compose',
+      'Staff Training',
+      'Team Leadership',
+      'Technical Support',
+    ],
+  },
+]
+
+function LinkRow({ href, label, lock }: { href: string; label: string; lock?: boolean }) {
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="mb-4 inline-flex items-center gap-1 text-sm text-blue-400 transition-colors hover:text-blue-300"
+      className="inline-flex items-center gap-1 text-sm text-blue-400 transition-colors hover:text-blue-300"
     >
+      {lock && <Lock className="h-3.5 w-3.5" aria-hidden />}
       {label}
       <ArrowUpRight className="h-4 w-4" aria-hidden />
     </a>
@@ -19,164 +203,51 @@ function ExternalLinkRow({ href, label }: { href: string; label: string }) {
 export default function ProjectsSection() {
   return (
     <section className="py-8 sm:py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-            Featured Projects
-          </h1>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            Here are some of the projects I've been working on recently.
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-16 text-center">
+          <h1 className="mb-4 text-3xl font-bold text-white sm:text-4xl">Featured Projects</h1>
+          <p className="mx-auto max-w-3xl text-xl text-gray-300">
+            Here are some of the projects I&apos;ve been working on recently.
           </p>
         </div>
-        <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg shadow-md overflow-hidden border border-white/20">
-            <div className="h-48 bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-              <Database className="w-16 h-16 text-white" />
-            </div>
-            <div className="p-6">
-              <h3 className="text-xl font-semibold text-white mb-2 text-center">Fayetteville PWC</h3>
-              <p className="text-gray-300 mb-4">AI and Data Engineer at Fayetteville Public Works Commission, building data pipelines and ML systems for utility operations and developing custom RAG agents to assist with internal document search.</p>
-              <div className="flex gap-2 flex-wrap">
-                {/* Programming Languages */}
-                <SkillTag skill="Python" color={getSkillColor('Python')} />
-                <SkillTag skill="SQL" color={getSkillColor('SQL')} />
-
-                {/* AI & ML */}
-                <SkillTag skill="RAG" color={getSkillColor('RAG')} />
-                <SkillTag skill="Multi-Agent RAG" color={getSkillColor('Multi-Agent RAG')} />
-                <SkillTag skill="Vector Database Integration" color={getSkillColor('Vector Database Integration')} />
-
-                {/* Backend */}
-                <SkillTag skill="API Development" color={getSkillColor('API Development')} />
-                <SkillTag skill="API Integration" color={getSkillColor('API Integration')} />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg shadow-md overflow-hidden border border-white/20">
-            <div className="h-48 bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-              <FileText className="w-16 h-16 text-white" />
-            </div>
-            <div className="p-6">
-              <h3 className="text-xl font-semibold text-white mb-2 text-center">RFP-Pilot</h3>
-              <p className="text-gray-300 mb-4">Co-founder of RFP-Pilot, a cloud-based automation platform that streamlines the request-for-proposal (RFP) process for small businesses. Features a multi-agent RAG architecture for intelligent document processing and AWS-powered backend services. Currently in pilot stage, onboarding early customers.</p>
-              <ExternalLinkRow href="https://rfppilot.com" label="rfppilot.com" />
-              <div className="flex gap-2 flex-wrap">
-                {/* Programming Languages */}
-                <SkillTag skill="Python" color={getSkillColor('Python')} />
-                <SkillTag skill="Next.js" color={getSkillColor('Next.js')} />
-                <SkillTag skill="SQL" color={getSkillColor('SQL')} />
-                
-                {/* AI & ML */}
-                <SkillTag skill="Multi-Agent RAG" color={getSkillColor('Multi-Agent RAG')} />
-                <SkillTag skill="Vector Database Integration" color={getSkillColor('Vector Database Integration')} />
-                
-                {/* Development Tools */}
-                <SkillTag skill="AWS" color={getSkillColor('AWS')} />
-                <SkillTag skill="Git" color={getSkillColor('Git')} />
-                
-                {/* Backend & Cloud */}
-                <SkillTag skill="Lambda Functions" color={getSkillColor('Lambda Functions')} />
-                <SkillTag skill="API Calls" color={getSkillColor('API Calls')} />
-                <SkillTag skill="PostgreSQL" color={getSkillColor('PostgreSQL')} />
-                <SkillTag skill="pgvector" color={getSkillColor('pgvector')} />
-                <SkillTag skill="API Development" color={getSkillColor('API Development')} />
-                <SkillTag skill="API Integration" color={getSkillColor('API Integration')} />
-                
-                {/* Frontend */}
-                <SkillTag skill="Frontend Design" color={getSkillColor('Frontend Design')} />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg shadow-md overflow-hidden border border-white/20">
-            <div className="h-48 bg-gradient-to-br from-indigo-400 to-cyan-500 flex items-center justify-center">
-              <Smartphone className="w-16 h-16 text-white" />
-            </div>
-            <div className="p-6">
-              <h3 className="text-xl font-semibold text-white mb-2 text-center">Clemson AI Research - Edge LLMs</h3>
-              <p className="text-gray-300 mb-4">Undergraduate AI research at Clemson University on optimizing and deploying Large Language Models on edge devices. Co-authored <a href="https://arxiv.org/abs/2604.04722" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">"Don't Waste Bits! Adaptive KV-Cache Quantization for Lightweight On-Device LLMs"</a>, accepted to the LoViF Workshop at CVPR 2026. Contributed the base test suite and built the learned controller with Gabriel Hillesheim — the controller selects between 2-bit, 4-bit, 8-bit, and FP16 precision per token using lightweight signals to improve the accuracy-latency trade-off.</p>
-              <ExternalLinkRow href="https://arxiv.org/abs/2604.04722" label="Read the paper on arXiv" />
-              <div className="flex gap-2 flex-wrap">
-                {/* Programming Languages */}
-                <SkillTag skill="Python" color={getSkillColor('Python')} />
-                
-                {/* Frameworks & Libraries */}
-                <SkillTag skill="PyTorch" color={getSkillColor('PyTorch')} />
-                <SkillTag skill="Hugging Face" color={getSkillColor('Hugging Face')} />
-                <SkillTag skill="LangChain" color={getSkillColor('LangChain')} />
-                
-                {/* AI, ML, and HPC */}
-                <SkillTag skill="LLM Optimization" color={getSkillColor('LLM Optimization')} />
-                <SkillTag skill="Edge Computing" color={getSkillColor('Edge Computing')} />
-                <SkillTag skill="Model Compression" color={getSkillColor('Model Compression')} />
-                <SkillTag skill="Quantization" color={getSkillColor('Quantization')} />
-                <SkillTag skill="Pruning" color={getSkillColor('Pruning')} />
-                <SkillTag skill="Knowledge Distillation" color={getSkillColor('Knowledge Distillation')} />
-                <SkillTag skill="Parameter-Efficient Fine-Tuning (PEFT)" color={getSkillColor('Parameter-Efficient Fine-Tuning (PEFT)')} />
-                
-                {/* Research & Communication */}
-                <SkillTag skill="Technical Presentations" color={getSkillColor('Technical Presentations')} />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg shadow-md overflow-hidden border border-white/20">
-            <div className="h-48 bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
-              <GraduationCap className="w-16 h-16 text-white" />
-            </div>
-            <div className="p-6">
-              <h3 className="text-xl font-semibold text-white mb-2 text-center">Clemson AI Research - RAG Systems</h3>
-              <p className="text-gray-300 mb-4">Undergraduate AI research at Clemson University utilizing Palmetto HPC for AI training and optimization. Developed a RAG model combining retrieval-based search with generative AI to improve response accuracy and delivered technical presentations to University of Florida professors.</p>
-              <div className="flex gap-2 flex-wrap">
-                {/* Programming Languages */}
-                <SkillTag skill="Python" color={getSkillColor('Python')} />
-                
-                {/* Frameworks & Libraries */}
-                <SkillTag skill="LangChain" color={getSkillColor('LangChain')} />
-                <SkillTag skill="Hugging Face" color={getSkillColor('Hugging Face')} />
-                <SkillTag skill="OpenAI API" color={getSkillColor('OpenAI API')} />
-                <SkillTag skill="CUDA Toolkit" color={getSkillColor('CUDA Toolkit')} />
-                
-                {/* AI, ML, and HPC */}
-                <SkillTag skill="Parallel Computing" color={getSkillColor('Parallel Computing')} />
-                <SkillTag skill="GPU Accelerated Programming" color={getSkillColor('GPU Accelerated Programming')} />
-                <SkillTag skill="Palmetto Cluster HPC" color={getSkillColor('Palmetto Cluster HPC')} />
-                <SkillTag skill="AI Training" color={getSkillColor('AI Training')} />
-                
-                {/* Research & Communication */}
-                <SkillTag skill="Technical Presentations" color={getSkillColor('Technical Presentations')} />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg shadow-md overflow-hidden border border-white/20">
-            <div className="h-48 bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center">
-              <Server className="w-16 h-16 text-white" />
-            </div>
-            <div className="p-6">
-              <h3 className="text-xl font-semibold text-white mb-2 text-center">BCDA LLC Network Infrastructure</h3>
-              <p className="text-gray-300 mb-4">Network expansion and software deployment project with staff training. Led network expansion and software implementation at BCDA LLC, expanding the network system to support 42 new devices and training all staff on new software systems. Achieved 99.9% network uptime and 95% technical issue resolution within 6 hours.</p>
-              <div className="flex gap-2 flex-wrap">
-                {/* Development Tools */}
-                <SkillTag skill="Docker Compose" color={getSkillColor('Docker Compose')} />
-                
-                {/* Operating Systems & Virtualization */}
-                <SkillTag skill="VMware Virtualization" color={getSkillColor('VMware Virtualization')} />
-                
-                {/* Networking & Infrastructure */}
-                <SkillTag skill="Network Administration" color={getSkillColor('Network Administration')} />
-                <SkillTag skill="System Integration" color={getSkillColor('System Integration')} />
-                <SkillTag skill="Infrastructure" color={getSkillColor('Infrastructure')} />
-                <SkillTag skill="NAS Management" color={getSkillColor('NAS Management')} />
-                <SkillTag skill="SSH" color={getSkillColor('SSH')} />
-                <SkillTag skill="Staff Training" color={getSkillColor('Staff Training')} />
-                <SkillTag skill="Team Leadership" color={getSkillColor('Team Leadership')} />
-                <SkillTag skill="Technical Support" color={getSkillColor('Technical Support')} />
-              </div>
-            </div>
-          </div>
+        <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-2">
+          {PROJECTS.map((p) => {
+            const Icon = p.icon
+            return (
+              <article
+                key={p.title}
+                className="flex flex-col overflow-hidden rounded-lg border border-white/20 bg-white/10 shadow-md backdrop-blur-sm transition-transform duration-200 hover:-translate-y-0.5"
+              >
+                <div className={`flex h-48 items-center justify-center bg-gradient-to-br ${p.gradient}`}>
+                  <Icon className="h-16 w-16 text-white" aria-hidden />
+                </div>
+                <div className="flex flex-1 flex-col p-6">
+                  <h2 className="mb-2 text-center text-xl font-semibold text-white">{p.title}</h2>
+                  <p className="mb-4 text-gray-300">{p.description}</p>
+                  {p.links && (
+                    <div className="mb-4 flex flex-wrap gap-x-5 gap-y-1">
+                      {p.links.map((l) => (
+                        <LinkRow key={l.href} {...l} />
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-auto flex flex-wrap gap-2">
+                    {p.skills.map((s) => (
+                      <SkillTag key={s} skill={s} color={getSkillColor(s)} />
+                    ))}
+                  </div>
+                </div>
+              </article>
+            )
+          })}
         </div>
+        <p className="mt-10 text-center text-sm text-gray-500">
+          Want the details on any of these?{' '}
+          <a href={`mailto:${CONTACT.email}`} className="text-gray-400 underline hover:text-white">
+            Email me
+          </a>
+          .
+        </p>
       </div>
     </section>
   )

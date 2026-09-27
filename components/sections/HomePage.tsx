@@ -9,7 +9,7 @@ import { useContactModal } from '../ContactModalProvider'
 export default function HomePage() {
   const { showContactModal } = useContactModal()
   return (
-    <section className="relative flex min-h-[calc(100vh-9rem)] items-center py-8">
+    <section className="relative flex min-h-[calc(100vh-9rem)] items-center py-10">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center gap-12 lg:flex-row">
           <div className="flex-shrink-0">
@@ -72,6 +72,34 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
+        </div>
+
+        {/* What I'm doing right now */}
+        <div className="mx-auto mt-16 max-w-4xl rounded-lg border border-white/15 bg-white/5 p-5 backdrop-blur-sm sm:p-6">
+          <p className="mb-4 text-xs font-medium uppercase tracking-widest text-blue-400">Now</p>
+          <ul className="grid gap-5 sm:grid-cols-2">
+            <li>
+              <p className="font-semibold text-white">AI &amp; Data Engineer · Fayetteville PWC</p>
+              <p className="mt-1 text-sm leading-relaxed text-gray-400">
+                Data pipelines, ML, and RAG agents for utility operations on Oracle Utilities C2M.
+              </p>
+            </li>
+            <li>
+              <p className="font-semibold text-white">Co-founder · RFP-Pilot</p>
+              <p className="mt-1 text-sm leading-relaxed text-gray-400">
+                Multi-agent RAG that drafts RFP responses for small businesses. In pilot with early
+                customers.{' '}
+                <a
+                  href="https://rfppilot.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 transition-colors hover:text-blue-300"
+                >
+                  rfppilot.com
+                </a>
+              </p>
+            </li>
+          </ul>
         </div>
       </div>
     </section>
