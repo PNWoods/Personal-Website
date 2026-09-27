@@ -47,6 +47,7 @@ export const SKILL_GROUPS: SkillGroup[] = [
       'Ollama',
       'Local LLM Hosting',
       'Prompt Engineering',
+      'Microsoft Copilot Studio',
       'Model Context Protocol (MCP)',
       'LLM Optimization',
       'Quantization',
