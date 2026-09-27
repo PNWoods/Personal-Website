@@ -8,7 +8,12 @@ import Footer from '@/components/Footer'
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
-      <div className="relative flex min-h-full w-full flex-col bg-black">
+      {/*
+        overflow-x: clip (not hidden) on the inner wrapper: the 1000px glow
+        would otherwise leave scrollable horizontal overflow that a focus or
+        scrollIntoView (e.g. tapping the menu button) can shift the page into.
+      */}
+      <div className="relative flex min-h-full w-full flex-col bg-black" style={{ overflowX: 'clip' }}>
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"
