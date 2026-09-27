@@ -14,6 +14,20 @@ export const CONTACT = {
   github: 'https://github.com/PNWoods',
 } as const
 
+/** Publications, newest first. Author order as published. */
+export const PUBLICATIONS = [
+  {
+    title: "Don't Waste Bits! Adaptive KV-Cache Quantization for Lightweight On-Device LLMs",
+    authors: ['Sayed Pedram Haeri Boroujeni', 'Niloufar Mehrabi', 'Patrick Woods', 'Gabriel Hillesheim', 'Abolfazl Razi'],
+    venue: 'LoViF Workshop, IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)',
+    year: 2026,
+    arxiv: '2604.04722',
+    url: 'https://arxiv.org/abs/2604.04722',
+    summary:
+      'A learned controller that picks 2-, 4-, 8-bit or FP16 precision per token for the KV cache, using lightweight token-level signals, so on-device LLMs spend bits where they matter and cut memory without the accuracy loss of fixed-precision schemes.',
+  },
+] as const
+
 /** Public pages, in nav order. */
 export const NAV_LINKS = [
   { href: '/', label: 'Home' },

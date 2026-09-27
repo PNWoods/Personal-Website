@@ -1,5 +1,29 @@
 import Navigation from '@/components/Navigation'
 import Footer from '@/components/Footer'
+import { CONTACT, PUBLICATIONS, SITE_URL } from '@/lib/site'
+
+/** Structured data so search engines connect the name, role and profiles. */
+const PERSON_JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: 'Patrick Woods',
+  url: SITE_URL,
+  image: `${SITE_URL}/patrick-woods-photo.jpeg`,
+  jobTitle: 'AI & Data Engineer',
+  worksFor: { '@type': 'Organization', name: 'Fayetteville Public Works Commission' },
+  affiliation: [{ '@type': 'Organization', name: 'RFP-Pilot', url: 'https://rfppilot.com' }],
+  alumniOf: { '@type': 'CollegeOrUniversity', name: 'Clemson University' },
+  email: `mailto:${CONTACT.email}`,
+  sameAs: [CONTACT.linkedin, CONTACT.github],
+  knowsAbout: ['Retrieval-augmented generation', 'Large language models', 'Data engineering', 'Model quantization'],
+  subjectOf: PUBLICATIONS.map((p) => ({
+    '@type': 'ScholarlyArticle',
+    headline: p.title,
+    author: p.authors.map((name) => ({ '@type': 'Person', name })),
+    datePublished: String(p.year),
+    url: p.url,
+  })),
+}
 
 /**
  * Shared frame for the public pages: one scroll container (the root layout
@@ -8,6 +32,10 @@ import Footer from '@/components/Footer'
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(PERSON_JSON_LD) }}
+      />
       {/*
         overflow-x: clip (not hidden) on the inner wrapper: the 1000px glow
         would otherwise leave scrollable horizontal overflow that a focus or

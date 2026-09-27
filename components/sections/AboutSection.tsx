@@ -1,3 +1,62 @@
+import { ArrowUpRight } from 'lucide-react'
+import { PUBLICATIONS } from '@/lib/site'
+
+function Publications() {
+  return (
+    <div className="mx-auto mt-14 max-w-3xl">
+      <h2 className="mb-6 text-center text-2xl font-bold text-white sm:text-3xl">Publications</h2>
+      <ul className="space-y-6">
+        {PUBLICATIONS.map((p) => {
+          const citation = `${p.authors.join(', ')}. "${p.title}." ${p.venue}, ${p.year}. arXiv:${p.arxiv}.`
+          return (
+            <li key={p.arxiv} className="rounded-lg border border-white/15 bg-white/5 p-5 text-left backdrop-blur-sm sm:p-6">
+              <h3 className="text-lg font-semibold text-white">{p.title}</h3>
+              <p className="mt-2 text-sm text-gray-300">
+                {p.authors.map((a, i) => (
+                  <span key={a}>
+                    {i > 0 && ', '}
+                    {a === 'Patrick Woods' ? <strong className="text-blue-400">{a}</strong> : a}
+                  </span>
+                ))}
+              </p>
+              <p className="mt-1 text-sm text-gray-400">
+                {p.venue}, {p.year}
+              </p>
+              <p className="mt-3 leading-relaxed text-gray-300">{p.summary}</p>
+              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+                <a
+                  href={p.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-blue-400 transition-colors hover:text-blue-300"
+                >
+                  arXiv:{p.arxiv}
+                  <ArrowUpRight className="h-4 w-4" aria-hidden />
+                </a>
+                <a
+                  href={`https://arxiv.org/pdf/${p.arxiv}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-blue-400 transition-colors hover:text-blue-300"
+                >
+                  PDF
+                  <ArrowUpRight className="h-4 w-4" aria-hidden />
+                </a>
+              </div>
+              <details className="mt-4 text-sm">
+                <summary className="cursor-pointer text-gray-400 hover:text-white">Cite</summary>
+                <pre className="mt-2 whitespace-pre-wrap break-words rounded border border-white/10 bg-black/40 p-3 font-mono text-xs leading-relaxed text-gray-300">
+                  {citation}
+                </pre>
+              </details>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 export default function AboutSection() {
   return (
     <section className="py-8 sm:py-12">
@@ -23,6 +82,8 @@ export default function AboutSection() {
             </div>
           </div>
         </div>
+
+        <Publications />
       </div>
     </section>
   )

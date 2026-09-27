@@ -1,110 +1,65 @@
-# Patrick Woods - My Personal Website
+# pnwoods.com
 
-A modern, responsive personal website showcasing my software development skills, projects, and professional experience. Built with Next.js, TypeScript, and Tailwind CSS.
+Personal site of Patrick Woods (AI & Data Engineer), plus two private tools
+that live in the same Next.js project: an invite-only AI chat workspace at
+`ai.pnwoods.com` backed by models running on home hardware, and a small
+workout tracker.
 
-## Features
+- **Public site**: Home, About (with publications), Skills, Projects, Contact.
+- **AI workspace**: ChatGPT-style chat over Ollama with streaming, per-user
+  memory and personalization, knowledge bases with hybrid vector + full-text
+  retrieval and citations, live web search via a self-hosted SearXNG, context
+  compaction for long conversations, and invite-code sign-up.
+- **Workout tracker**: logging app behind the same Supabase auth.
 
-- **Multi-page Architecture**: Separate pages for Home, About, Projects, and Skills
-- **Responsive Design**: Optimized for desktop, tablet, and mobile devices
-- **Interactive Contact Modal**: Popup contact information accessible from navigation and home page
-- **Project Showcase**: Detailed project cards with skill tags and descriptions
-- **Skills Organization**: Categorized technical skills with color-coded tags
-- **Professional UI**: Clean, modern design with consistent branding
-- **Scrollable Projects**: Projects page allows scrolling to view all content
-- **Fixed Layout**: Other pages maintain fixed height for consistent user experience
+## Stack
 
-## Tech Stack
+| Layer | What |
+| --- | --- |
+| Framework | Next.js 14 (App Router), TypeScript, Tailwind CSS, lucide-react |
+| Hosting | Vercel (Fluid compute for long streaming responses), Vercel Web Analytics |
+| Auth + data | Supabase: Postgres with pgvector, Row Level Security, Storage, email/password auth |
+| Models | Ollama on a home machine, reached through a Cloudflare Tunnel locked with Zero Trust service tokens |
+| Search | SearXNG in an LXC container on a Proxmox host, behind the same tunnel |
 
-- **Framework**: Next.js 14 with App Router
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Icons**: Lucide React
-- **State Management**: React Context API
-
-## Project Structure
+## Layout
 
 ```
-├── app/
-│   ├── about/           # About page
-│   │   └── page.tsx
-│   ├── projects/        # Projects page
-│   │   ├── layout.tsx   # Custom layout for scrolling
-│   │   └── page.tsx
-│   ├── skills/          # Skills page
-│   │   └── page.tsx
-│   ├── home/            # Home page
-│   │   └── page.tsx
-│   ├── globals.css      # Global styles
-│   ├── layout.tsx       # Root layout
-│   └── page.tsx         # Redirects to /home
-├── components/          # Reusable components
-│   ├── sections/        # Page sections
-│   │   ├── HomePage.tsx
-│   │   ├── AboutSection.tsx
-│   │   ├── ProjectsSection.tsx
-│   │   └── SkillsSection.tsx
-│   ├── Navigation.tsx   # Navigation component
-│   ├── SkillTag.tsx     # Reusable skill tag component
-│   └── ContactModalProvider.tsx # Contact modal context
-├── data/
-│   └── skills.ts        # Skill color mappings and categories
-├── public/              # Static assets
-│   └── patrick-woods-photo.jpeg # Profile photo
-├── next.config.js       # Next.js configuration
-├── tailwind.config.js   # Tailwind CSS configuration
-└── tsconfig.json        # TypeScript configuration
+app/
+  (site)/            public pages: /, /about, /skills, /projects, /contact
+  ai/                chat workspace (served at ai.pnwoods.com via middleware rewrite)
+  api/               chat streaming, model list, knowledge ingestion, cron keepalive
+  workouts/          workout tracker
+  opengraph-image.tsx, icon.svg, robots.ts, sitemap.ts, not-found.tsx
+components/
+  sections/          public page content (Home, About, Skills, Projects)
+  ai/                chat UI, knowledge base UI, settings
+  workouts/
+data/skills.ts       skill groups; a skill's group decides its tag colour everywhere
+lib/site.ts          site constants: contact links, nav, publications
+lib/ai/              prompt building, compaction, memory, retrieval, ingestion, extraction
+supabase/migrations/ schema, run by hand in the Supabase SQL editor (see docs/)
+docs/                setup guides for the AI workspace and the VS Code agent
+middleware.ts        host rewrite for ai.pnwoods.com, auth gates for /ai and /workouts
 ```
 
-## Pages & Content
+## Running locally
 
-### Home Page (`/home`)
-- Professional introduction with photo
-- Links to Skills & Resume and Contact modal
-- Clean, modern home page section
+```bash
+npm install
+cp .env.example .env.local   # Supabase URL + anon key; Ollama URL for the chat
+npm run dev
+```
 
-### About Page (`/about`)
-- Personal background and experience
-- Focus on Fayetteville PWC, RFP-Pilot, Edge LLMs research, and earlier Clemson/BCDA work
-- Professional narrative of career journey
-
-### Projects Page (`/projects`)
-- **Fayetteville PWC**: AI and Data Engineering for utility operations and internal-document RAG agents
-- **RFP-Pilot**: Multi-agent RAG platform (co-founder, pilot stage)
-- **Clemson AI Research - Edge LLMs**: Edge device LLM optimization (CVPR 2026 LoViF Workshop paper)
-- **Clemson AI Research - RAG Systems**: HPC-based RAG development
-- **BCDA LLC Network Infrastructure**: Network expansion and staff training
-- Each project includes detailed descriptions and skill tags
-
-### Skills Page (`/skills`)
-- Comprehensive technical skills organized by category
-- Color-coded skill tags for visual consistency
-- Categories: Programming Languages, Frameworks & Libraries, Development Tools, Operating Systems, AI/ML/HPC, Backend & Cloud, Networking & Infrastructure
-
-## Key Features Implemented
-
-- **Responsive Design**: Mobile-first approach with Tailwind CSS
-- **Interactive Elements**: Contact modal with LinkedIn and contact info
-- **Skill Management**: Centralized skill definitions with consistent colors
-- **Project Showcase**: Detailed project cards with technology stacks
-- **Professional Branding**: Consistent blue accent color throughout
-- **Scroll Management**: Fixed-height pages with scrollable projects section
-
-## Development Notes
-
-- Built with Next.js 14 App Router for optimal performance
-- TypeScript for type safety and better development experience
-- Tailwind CSS for rapid, consistent styling
-- Lucide React for professional iconography
-- React Context for global state management
-- Custom layouts for different page behaviors
-
+The public pages need no environment variables. The AI workspace and workout
+tracker need Supabase, and the chat needs a reachable Ollama; see
+[`docs/ai-chat-setup.md`](docs/ai-chat-setup.md) for the full setup
+(migrations, tunnel, Access tokens, environment variables) and
+[`docs/vscode-cline-c2m.md`](docs/vscode-cline-c2m.md) for using the same
+models from VS Code.
 
 ## Contact
 
-- **Website**: [pnwoods.com](https://pnwoods.com)
-- **LinkedIn**: https://www.linkedin.com/in/pnwoods/
-- **Email**: woods.patrick@icloud.com
-
----
-
-*This website showcases my full-stack development skills, AI/ML research experience, and professional work in network infrastructure and software development.*
+- Website: [pnwoods.com](https://pnwoods.com)
+- LinkedIn: [linkedin.com/in/pnwoods](https://www.linkedin.com/in/pnwoods/)
+- Email: woods.patrick@icloud.com
