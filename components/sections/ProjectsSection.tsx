@@ -1,15 +1,29 @@
-import { Database, FileText, GraduationCap, Server, Smartphone } from 'lucide-react'
+import { ArrowUpRight, Database, FileText, GraduationCap, Server, Smartphone } from 'lucide-react'
 import SkillTag from '../SkillTag'
 import { getSkillColor } from '../../data/skills'
 
+function ExternalLinkRow({ href, label }: { href: string; label: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mb-4 inline-flex items-center gap-1 text-sm text-blue-400 transition-colors hover:text-blue-300"
+    >
+      {label}
+      <ArrowUpRight className="h-4 w-4" aria-hidden />
+    </a>
+  )
+}
+
 export default function ProjectsSection() {
   return (
-    <section className="py-8">
+    <section className="py-8 sm:py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">
             Featured Projects
-          </h2>
+          </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
             Here are some of the projects I've been working on recently.
           </p>
@@ -46,10 +60,11 @@ export default function ProjectsSection() {
             <div className="p-6">
               <h3 className="text-xl font-semibold text-white mb-2 text-center">RFP-Pilot</h3>
               <p className="text-gray-300 mb-4">Co-founder of RFP-Pilot, a cloud-based automation platform that streamlines the request-for-proposal (RFP) process for small businesses. Features a multi-agent RAG architecture for intelligent document processing and AWS-powered backend services. Currently in pilot stage, onboarding early customers.</p>
+              <ExternalLinkRow href="https://rfppilot.com" label="rfppilot.com" />
               <div className="flex gap-2 flex-wrap">
                 {/* Programming Languages */}
                 <SkillTag skill="Python" color={getSkillColor('Python')} />
-                <SkillTag skill="Next.js" color={getSkillColor('Node.js')} />
+                <SkillTag skill="Next.js" color={getSkillColor('Next.js')} />
                 <SkillTag skill="SQL" color={getSkillColor('SQL')} />
                 
                 {/* AI & ML */}
@@ -81,6 +96,7 @@ export default function ProjectsSection() {
             <div className="p-6">
               <h3 className="text-xl font-semibold text-white mb-2 text-center">Clemson AI Research - Edge LLMs</h3>
               <p className="text-gray-300 mb-4">Undergraduate AI research at Clemson University on optimizing and deploying Large Language Models on edge devices. Co-authored <a href="https://arxiv.org/abs/2604.04722" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">"Don't Waste Bits! Adaptive KV-Cache Quantization for Lightweight On-Device LLMs"</a>, accepted to the LoViF Workshop at CVPR 2026. Contributed the base test suite and built the learned controller with Gabriel Hillesheim — the controller selects between 2-bit, 4-bit, 8-bit, and FP16 precision per token using lightweight signals to improve the accuracy-latency trade-off.</p>
+              <ExternalLinkRow href="https://arxiv.org/abs/2604.04722" label="Read the paper on arXiv" />
               <div className="flex gap-2 flex-wrap">
                 {/* Programming Languages */}
                 <SkillTag skill="Python" color={getSkillColor('Python')} />
