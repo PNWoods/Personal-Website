@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { ArrowUpRight, Bot, Database, FileText, GraduationCap, Lock, Server, Smartphone } from 'lucide-react'
+import { ArrowUpRight, Bot, Database, FileText, GraduationCap, HardDrive, Lock, Server, Smartphone } from 'lucide-react'
 import SkillTag from '../SkillTag'
 import { getSkillColor } from '../../data/skills'
 import { CONTACT } from '@/lib/site'
@@ -100,6 +100,27 @@ const PROJECTS: Project[] = [
       'Proxmox',
       'Tailscale',
       'Self-Hosted Services',
+    ],
+  },
+  {
+    title: 'Home lab: Proxmox + self-hosted services',
+    icon: HardDrive,
+    gradient: 'from-slate-400 to-zinc-600',
+    description:
+      'A Proxmox VE host running the services behind everything else here, each in its own LXC container: Pi-hole DNS for the whole network, the SearXNG metasearch engine that gives the AI workspace live web results, a Docker media-automation stack, a network file share, a dedicated Palworld game server, and a small game-community bot. Tailscale handles remote access; the few public endpoints go out through Cloudflare Tunnel behind Zero Trust, and a Windows laptop with an RTX 4080 serves the LLMs.',
+    skills: [
+      'Proxmox',
+      'Linux/Unix',
+      'Docker',
+      'Docker Compose',
+      'Bash',
+      'Tailscale',
+      'Cloudflare Tunnel & Zero Trust',
+      'Ollama',
+      'Self-Hosted Services',
+      'Network Administration',
+      'NAS Management',
+      'SSH',
     ],
   },
   {
