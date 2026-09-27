@@ -11,7 +11,7 @@ const PERSON_JSON_LD = {
   image: `${SITE_URL}/patrick-woods-photo.jpeg`,
   jobTitle: 'AI & Data Engineer',
   worksFor: { '@type': 'Organization', name: 'Fayetteville Public Works Commission' },
-  affiliation: [{ '@type': 'Organization', name: 'RFP-Pilot', url: 'https://rfppilot.com' }],
+  affiliation: [{ '@type': 'Organization', name: 'RFP Pilot', url: 'https://rfppilot.com' }],
   alumniOf: { '@type': 'CollegeOrUniversity', name: 'Clemson University' },
   email: `mailto:${CONTACT.email}`,
   sameAs: [CONTACT.linkedin, CONTACT.github],

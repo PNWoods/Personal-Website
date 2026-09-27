@@ -28,7 +28,7 @@ export default function OpenGraphImage() {
           Patrick Woods
         </div>
         <div style={{ fontSize: 40, marginTop: 28, color: '#e5e7eb' }}>
-          AI &amp; Data Engineer · Fayetteville PWC · co-founder of RFP-Pilot
+          AI &amp; Data Engineer · Fayetteville PWC · co-founder of RFP Pilot
         </div>
         <div style={{ fontSize: 28, marginTop: 56, color: '#6b7280' }}>{SITE_URL.replace('https://', '')}</div>
       </div>
